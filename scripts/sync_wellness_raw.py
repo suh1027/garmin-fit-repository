@@ -1,75 +1,113 @@
 #!/usr/bin/env python3
-"""Archive daily Garmin Wellness ZIP bundles.
+"""Download daily Garmin Wellness ZIP but archive its individual FIT members.
 
-Read-only automatic API mode is experimental and disabled in the scheduled
-wrapper by default. Offline --import-file is the reliable manual fallback.
+The ZIP is an in-memory transport only for new downloads; previously archived
+ZIPs can be converted with --mode import. This program does not write new ZIPs.
 """
 from __future__ import annotations
+
 import argparse
 from datetime import date, datetime, timedelta
 from io import BytesIO
 import logging
 import os
 from pathlib import Path
+import re
 import sys
 import time
-from zipfile import ZipFile, BadZipFile
+from zipfile import BadZipFile, ZipFile
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 LOG = logging.getLogger("garmin_wellness_raw")
-MAX_ARCHIVE = 150 * 1024 * 1024
 KST = ZoneInfo("Asia/Seoul")
+MAX_ARCHIVE = 150 * 1024 * 1024
+MAX_TOTAL_UNCOMPRESSED = 500 * 1024 * 1024
+MAX_MEMBER = 100 * 1024 * 1024
+MAX_MEMBERS = 2000
+FILENAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*\.fit$", re.IGNORECASE)
 
 
 def arguments():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--mode", choices=("api", "import"), required=True)
-    p.add_argument("--date", type=date.fromisoformat, help="Wellness bundle date YYYY-MM-DD")
-    p.add_argument("--days", type=int, default=2, help="Previous completed days for API mode")
-    p.add_argument("--import-file", type=Path, help="ZIP exported manually from Garmin Connect")
+    p.add_argument("--date", type=date.fromisoformat, help="Wellness day YYYY-MM-DD")
+    p.add_argument("--days", type=int, default=3, help="Previously completed days in API mode")
+    p.add_argument("--import-file", type=Path, help="Existing Garmin Wellness ZIP")
     p.add_argument("--pause", type=float, default=3.0)
-    p.add_argument("--probe", action="store_true", help="Download and inspect ZIP without saving (API mode)")
+    p.add_argument("--probe", action="store_true", help="Verify ZIP only, without saving")
     return p.parse_args()
 
 
-def validate_zip(raw: bytes):
+def fit_valid(data: bytes) -> bool:
+    if len(data) < 14 or data[0] not in (12, 14) or data[8:12] != b".FIT":
+        return False
+    data_size = int.from_bytes(data[4:8], "little")
+    return data[0] + data_size + 2 <= len(data)
+
+
+def inspect_zip(raw: bytes):
     if not 0 < len(raw) <= MAX_ARCHIVE:
         raise ValueError("Invalid Wellness ZIP size")
     try:
         with ZipFile(BytesIO(raw)) as archive:
+            entries = [x for x in archive.infolist() if not x.is_dir()]
+            if len(entries) > MAX_MEMBERS:
+                raise ValueError("Too many ZIP entries")
+            if sum(x.file_size for x in entries) > MAX_TOTAL_UNCOMPRESSED:
+                raise ValueError("Wellness ZIP uncompressed size too large")
+            fit_entries = [x for x in entries if x.filename.lower().endswith(".fit")]
+            if not fit_entries:
+                raise ValueError("No FIT files in Wellness ZIP")
+            basenames = set()
+            for info in fit_entries:
+                # Deny paths, traversal and duplicate names before writing.
+                name = info.filename
+                if ("/" in name or "\\" in name or not FILENAME.fullmatch(name)):
+                    raise ValueError("Unsafe FIT filename in ZIP")
+                if name.lower() in basenames:
+                    raise ValueError("Duplicate FIT filename in ZIP")
+                basenames.add(name.lower())
+                if info.file_size > MAX_MEMBER:
+                    raise ValueError("Oversized FIT file in ZIP")
             if archive.testzip() is not None:
-                raise ValueError("Wellness ZIP failed CRC validation")
-            members = [e.filename for e in archive.infolist() if not e.is_dir()]
-            fit_names = [n for n in members if n.lower().endswith(".fit")]
-            if not fit_names:
-                raise ValueError("ZIP has no FIT files; endpoint may be unsupported or changed")
-            if len(members) > 2000 or sum(i.file_size for i in archive.infolist()) > 500 * 1024 * 1024:
-                raise ValueError("Unexpected ZIP decompressed size / member count")
-            return fit_names
+                raise ValueError("ZIP CRC validation failed")
+            return [x.filename for x in fit_entries]
     except BadZipFile as exc:
-        raise ValueError("Response is not ZIP") from exc
+        raise ValueError("Invalid ZIP response") from exc
 
 
-def archive(day: date, raw: bytes):
-    fits = validate_zip(raw)
-    path = ROOT / "wellness_raw" / f"{day:%Y}" / f"{day:%m}" / f"{day:%d}" / "wellness_original.zip"
-    if path.exists() and path.read_bytes() == raw:
-        LOG.info("UNCHANGED %s FITs=%d", path.relative_to(ROOT), len(fits))
+def atomic_write(target: Path, payload: bytes) -> bool:
+    if target.is_file() and target.read_bytes() == payload:
         return False
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
     try:
-        with temp.open("xb") as output:
+        with temp.open("xb") as stream:
             os.chmod(temp, 0o600)
-            output.write(raw)
-            output.flush()
-            os.fsync(output.fileno())
-        temp.replace(path)
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        temp.replace(target)
     finally:
         temp.unlink(missing_ok=True)
-    LOG.info("SAVED %s FITs=%d bytes=%d", path.relative_to(ROOT), len(fits), len(raw))
     return True
+
+
+def archive(day: date, raw: bytes) -> int:
+    names = inspect_zip(raw)
+    directory = ROOT / "wellness_raw" / f"{day:%Y}" / f"{day:%m}" / f"{day:%d}"
+    changed = 0
+    with ZipFile(BytesIO(raw)) as bundle:
+        for name in names:
+            payload = bundle.read(name)
+            if not fit_valid(payload):
+                raise ValueError(f"Malformed FIT file: {name}")
+            if atomic_write(directory / name, payload):
+                changed += 1
+                LOG.info("SAVED %s", (directory / name).relative_to(ROOT))
+    LOG.info("COMPLETE date=%s FITs=%d changed=%d", day, len(names), changed)
+    return changed
 
 
 def main():
@@ -80,16 +118,18 @@ def main():
     if opts.mode == "import":
         if not opts.date or not opts.import_file:
             raise SystemExit("--mode import requires --date and --import-file")
-        archive(opts.date, opts.import_file.read_bytes())
+        raw = opts.import_file.read_bytes()
+        if opts.probe:
+            LOG.info("PROBE date=%s files=%s", opts.date, inspect_zip(raw))
+        else:
+            archive(opts.date, raw)
         return 0
 
-    # Unofficial endpoint seen in open-source download implementations. It may
-    # stop working without notice; never treat Health Snapshot as proof that the
-    # full daily Wellness export is correct. Inspect the ZIP member names.
     from garminconnect import Garmin
+
     tokenstore = Path(os.getenv("GARMIN_TOKEN_DIR", "~/.garminconnect")).expanduser()
     if not (tokenstore / "garmin_tokens.json").is_file():
-        raise SystemExit(f"Missing token store: {tokenstore}")
+        raise SystemExit(f"Missing Garmin token store: {tokenstore}")
     client = Garmin()
     client.login(str(tokenstore))
     today = datetime.now(KST).date()
@@ -97,22 +137,20 @@ def main():
     errors = 0
     for day in days:
         try:
-            # Experiment: /download-service/files/wellness/YYYY-MM-DD
             endpoint = f"/download-service/files/wellness/{day.isoformat()}"
             raw = client.download(endpoint)
             if not isinstance(raw, (bytes, bytearray)):
-                raise TypeError("Wellness endpoint did not return binary content")
+                raise TypeError("Wellness endpoint returned non-binary response")
             if opts.probe:
-                fit_names = validate_zip(bytes(raw))
+                fit_names = inspect_zip(bytes(raw))
                 LOG.info("PROBE date=%s fit_count=%d files=%s", day, len(fit_names), fit_names[:15])
-                LOG.info("Compare the FIT file types with Garmin's manual Export Wellness Data ZIP before enabling scheduled import.")
             else:
                 archive(day, bytes(raw))
         except Exception as exc:
-            LOG.error("FAILED date=%s reason=%s", day, type(exc).__name__)
+            LOG.error("FAILED date=%s type=%s detail=%s", day, type(exc).__name__, str(exc)[:250])
             errors += 1
-            n = type(exc).__name__.lower()
-            if any(x in n for x in ("authentication", "toomanyrequests", "connection")):
+            lower = type(exc).__name__.lower()
+            if any(s in lower for s in ("authentication", "toomanyrequests", "connection")):
                 break
         if opts.pause:
             time.sleep(opts.pause)
