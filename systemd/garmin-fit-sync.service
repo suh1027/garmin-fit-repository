@@ -1,0 +1,17 @@
+[Unit]
+Description=Garmin FIT archive sync to private Git repository
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=garmin
+WorkingDirectory=/garmin/garmin-fit-pipeline
+Environment=HOME=/home/garmin
+ExecStart=/garmin/garmin-fit-pipeline/scripts/run_sync.sh --days 30
+TimeoutStartSec=45min
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
