@@ -1,3 +1,816 @@
+# Garmin Data Pipeline for AI Analysis
+
+**Garmin Connect → Linux Data Collection → GitHub Archive → Web ChatGPT Projects**
+
+This repository is a reusable pipeline for archiving Garmin activity, wellness and performance data for **AI-assisted analysis in ChatGPT on the web**. Each ChatGPT **Project** can have its own instructions and analytical focus (training, recovery, race preparation, or data validation), while using the same trusted data archive.
+
+이 저장소는 Garmin Connect의 운동·건강·퍼포먼스 데이터를 자동으로 수집하여 **웹 ChatGPT의 프로젝트별 지침(Project instructions)에 따라 AI 분석**에 활용하기 위한 데이터 파이프라인입니다. 하나의 저장소를 여러 GPT 프로젝트가 각기 다른 분석 목적에 맞게 참조하도록 설계했습니다.
+
+> **Scope / 범위:** The Linux automation collects and pushes files. **ChatGPT analysis is a separate, user-initiated or separately configured step.** Merely naming a private GitHub repository in Project instructions does not grant ChatGPT access, and binary FIT files require appropriate parsing.
+>
+> Linux 자동화는 **수집·보관·Git Push**까지 수행합니다. AI 분석은 프로젝트에서 별도로 요청해야 하며, Private GitHub 접근 권한과 FIT 바이너리 파싱 가능 여부를 각각 확인해야 합니다.
+
+**Language / 언어:** [한국어 가이드](#한국어-가이드) · [English guide](#english-guide) · [기존 상세 운영 문서](#기존-상세-운영-문서--preserved-legacy-documentation)
+
+---
+
+## 한국어 가이드
+
+### 1. 프로젝트 개요와 사용 목적
+
+이 프로젝트는 특정 장비나 한 번의 훈련을 분석하기 위한 프로그램이 아니라, Garmin Connect 데이터를 꾸준히 축적해 **시간이 지날수록 풍부해지는 개인 운동 데이터 저장소**를 구축하는 것을 목적으로 합니다.
+
+**활용 시나리오**
+
+- **훈련 분석 프로젝트:** Activity FIT를 중심으로 페이스·심박·랩·케이던스·주간 훈련량·강도 분포를 비교
+- **회복/컨디션 프로젝트:** HRV·수면·안정시 심박·스트레스·Body Battery와 최근 훈련 부하를 결합
+- **마라톤/레이스 프로젝트:** 최근 8~12주 기록, 장거리주, 인터벌, 레이스 결과를 종합해 목표 페이스와 전략 검토
+- **데이터 품질 프로젝트:** FIT·JSON 간 날짜/단위/누락/센서 오류/중복 데이터를 점검
+
+위 프로젝트들은 동일한 GitHub 저장소를 참조하되, 각각의 **ChatGPT 프로젝트 지침**을 다르게 적용할 수 있습니다. 데이터 파이프라인 자체는 모델·프롬프트·특정 AI 서비스에 종속되지 않습니다.
+
+### 2. 전체 아키텍처
+
+```text
+Garmin Watch / Cycling Device / Sensors
+                  │ Device synchronization
+                  ▼
+             Garmin Connect
+                  │ Authenticated API session
+                  ▼
+        Linux VM (Rocky Linux 9)
+        ┌────────────────────────────────────────────┐
+        │ scripts/auth.py        최초 로그인/토큰 저장│
+        │ scripts/sync_fit.py    Activity FIT 수집    │
+        │ scripts/sync_health.py Wellness/Performance │
+        │ scripts/sync_wellness_raw.py Wellness FIT   │
+        │ scripts/run_sync.sh    수집 + Git 동기화    │
+        └────────────────────────────────────────────┘
+                  ▲
+       systemd timer / service
+          매일 00:00 KST
+                  │
+                  ▼
+         GitHub Private Repository
+      activities/   wellness/   wellness_raw/
+                   performance/
+                  │
+        Authorized file / repository access
+                  ▼
+       Web ChatGPT: separate Projects
+        ├─ Training Performance Analysis
+        ├─ Recovery & Readiness Analysis
+        └─ Marathon Race Planning
+```
+
+**처리 흐름**
+
+1. Garmin 기기를 Garmin Connect와 동기화합니다. 기기가 서버에 직접 연결되는 구조는 아닙니다.
+2. Linux 서버의 systemd 타이머가 정해진 시간에 `run_sync.sh`를 시작합니다.
+3. 이전에 저장한 Garmin 인증 토큰으로 수집기들이 Garmin Connect 데이터를 조회합니다.
+4. Activity FIT, Wellness 원본 FIT, 가공된 Wellness/Performance JSON을 **연·월·일** 디렉터리에 저장합니다.
+5. `run_sync.sh`가 Git 변경사항을 Commit하고 Private Repository의 `main`에 Push합니다.
+6. 사용자가 ChatGPT 프로젝트에서 질문하면, **해당 프로젝트에서 실제로 접근 가능한 파일만** 분석에 사용합니다.
+
+### 3. 저장소 디렉터리 및 소스 파일 구성
+
+```text
+repository/
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── scripts/
+│   ├── auth.py
+│   ├── sync_fit.py
+│   ├── sync_health.py
+│   ├── sync_wellness_raw.py
+│   └── run_sync.sh
+├── systemd/
+│   ├── garmin-fit-sync.service
+│   └── garmin-fit-sync.timer
+├── activities/
+│   └── YYYY/MM/DD/{activityId}.fit
+├── wellness/
+│   └── YYYY/MM/DD/
+│       ├── sleep.json
+│       ├── hrv.json
+│       ├── heart_rate.json
+│       ├── stress.json
+│       ├── body_battery.json
+│       └── daily_stats.json
+├── wellness_raw/
+│   └── YYYY/MM/DD/{id}_{type}.fit
+└── performance/
+    ├── YYYY/MM/DD/training_readiness.json
+    └── snapshots/YYYY/MM/DD/
+        ├── vo2max.json
+        ├── training_status.json
+        └── load_focus.json
+
+# 로컬 서버 전용 (Git에 올리지 않음)
+.collector.env
+.venv/
+~/.garminconnect/garmin_tokens.json
+~/.ssh/<private-deploy-key>
+```
+
+| 파일 | 역할 | 주요 구현 방식 |
+| --- | --- | --- |
+| `scripts/auth.py` | Garmin Connect 최초 인증 | ID/비밀번호/MFA 입력, 인증 토큰을 Repository **외부**에 보관 |
+| `scripts/sync_fit.py` | Activity 원본 다운로드 | Garmin Original 다운로드 ZIP에서 FIT 1개 추출, 활동 ID 중복 방지, 날짜별 저장, `--days` / `--since` / `--until` |
+| `scripts/sync_health.py` | Wellness/Performance API 조회 | 날짜별 JSON, 변경된 내용만 갱신, 계산 지표 스냅샷 별도 저장 |
+| `scripts/sync_wellness_raw.py` | Wellness 원본 FIT 수집 | Wellness ZIP 응답을 메모리에서 검증하고 개별 FIT로 추출; 신규 ZIP은 영구 보관하지 않음 |
+| `scripts/run_sync.sh` | 전체 오케스트레이션 | `flock` 중복 실행 방지, 환경 설정 로드, Git fast-forward pull, 수집기 순차 실행, Commit/Push |
+| `systemd/garmin-fit-sync.service` | 실제 배치 실행 | `oneshot`, `garmin` 계정, 실행 경로·타임아웃 설정 |
+| `systemd/garmin-fit-sync.timer` | 스케줄 | 기본 설정 **매일 00:00:00 Asia/Seoul** |
+| `requirements.txt` | Python 의존성 | `garminconnect>=0.3,<0.4`, `curl_cffi` |
+| `.gitignore` | 민감/임시 파일 제외 | 인증 정보, 가상환경, 로컬 설정, Wellness ZIP 등 제외 |
+
+**데이터 형식과 해석상 주의할 점**
+
+- **Activity FIT:** 세션·랩·레코드 등 운동 원본을 분석합니다. 파일명 `{activityId}.fit`과 활동 ID로 운동을 식별하며, 활동의 **시작 현지 날짜**에 저장합니다.
+- **Wellness FIT:** `WELLNESS`, `HRV_STATUS`, `METRICS`, `SLEEP_DATA`, `SLEEP_DISRUPTIONS` 등이 실제 응답에 포함될 수 있습니다. 폴더 날짜는 **Garmin Wellness API 조회일**이며, FIT 내부 시각은 자정을 넘길 수 있습니다.
+- **Wellness JSON:** Garmin이 제공하는 수면, HRV, 심박, 스트레스, Body Battery 등의 가공·집계 정보를 담습니다. FIT와 일부 중복되더라도 정의·샘플링·계산 방식이 완전히 같지는 않습니다.
+- **Performance JSON:** Training Readiness처럼 날짜가 지정된 응답과, VO₂max/Training Status/Load Focus처럼 **수집 날짜에 저장한 스냅샷**을 구분합니다. 스냅샷 날짜를 과거 측정일이라고 단정하지 않습니다.
+- 데이터가 없는 날은 **0이 아니라 누락/미제공**으로 처리합니다. Garmin API에 따라 제공 여부가 달라질 수 있습니다.
+
+### 4. 설치 준비
+
+**권장 환경:** Rocky Linux 9, Python 3.12, Git, systemd, 외부 HTTPS 통신, Private GitHub Repository, GitHub SSH Deploy Key(쓰기 권한).
+
+**예시 경로:** 운영 계정 `garmin`, 프로젝트 경로 `/garmin/garmin-fit-pipeline`. 새 환경에서는 계정/경로/저장소 이름을 변경해도 되지만 **systemd 유닛과 `run_sync.sh`의 경로 및 SSH 키 설정을 함께 변경**해야 합니다.
+
+#### 4.1 OS 및 계정 준비
+
+관리자 계정에서 다음을 실행합니다. 패키지 이름은 해당 Rocky Linux 이미지에서 제공하는 버전에 맞춰 조정합니다.
+
+```bash
+sudo dnf install -y git openssh-clients unzip python3.12 python3.12-pip
+sudo useradd -m -s /bin/bash garmin  # 이미 존재하면 생략
+sudo mkdir -p /garmin
+sudo chown garmin:garmin /garmin
+```
+
+`python3.12 --version`으로 버전을 확인합니다. 다른 Python 버전을 사용하면 아래 venv 명령도 일관되게 변경하세요.
+
+#### 4.2 GitHub Private Repository 및 SSH 인증
+
+`garmin` 계정에서 SSH 키를 생성하고 공개키를 **대상 Private Repository의 Deploy keys**에 등록합니다. 자동 Push가 필요하므로 **Allow write access**를 활성화해야 합니다.
+
+```bash
+sudo -iu garmin
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+ssh-keygen -t ed25519 -f ~/.ssh/garmin_archive_ed25519 -C "garmin-data-pipeline"
+chmod 600 ~/.ssh/garmin_archive_ed25519
+cat ~/.ssh/garmin_archive_ed25519.pub
+```
+
+SSH 연결 시 처음 표시되는 github.com 서버 호스트 키 지문은 GitHub 공식 문서의 공개 지문과 대조해 `known_hosts`에 등록합니다. 그다음 인증을 검사합니다.
+
+```bash
+ssh -T -i ~/.ssh/garmin_archive_ed25519 -o IdentitiesOnly=yes git@github.com
+```
+
+`Hi ... You've successfully authenticated`라는 메시지는 인증 성공을 의미합니다. **Push 권한**은 나중에 실제 Push로 별도 확인합니다. 기존 서버에 키가 있으면 재생성하지 마세요.
+
+#### 4.3 소스 Clone 및 Python 환경
+
+```bash
+sudo -iu garmin
+cd /garmin
+GIT_SSH_COMMAND='ssh -i /home/garmin/.ssh/garmin_archive_ed25519 -o IdentitiesOnly=yes' \
+  git clone git@github.com:suh1027/garmin-fit-repository.git garmin-fit-pipeline
+cd /garmin/garmin-fit-pipeline
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+chmod +x scripts/run_sync.sh
+```
+
+**Clone 주소는 예시 운영 저장소**입니다. 다른 사용자에게 배포한다면 자신의 Repository 주소로 변경해야 하며, `run_sync.sh`의 고정 SSH 키 경로도 확인해야 합니다.
+
+이미 설치된 서버에서는 **재 Clone하지 말고** 기존 작업 디렉터리에서 진행합니다.
+
+### 5. 인증·환경 설정·최초 다운로드
+
+#### 5.1 Garmin 인증
+
+```bash
+cd /garmin/garmin-fit-pipeline
+.venv/bin/python scripts/auth.py
+```
+
+이메일·비밀번호·MFA 코드를 대화형으로 입력하면 기본적으로 `/home/garmin/.garminconnect/` 아래에 토큰이 생성됩니다. 비밀번호와 토큰은 GitHub에 Push하지 않습니다. 추후 인증이 만료되면 이 명령으로 다시 로그인할 수 있습니다.
+
+#### 5.2 배치 환경변수
+
+프로젝트 루트에 **Git에서 제외된 로컬 설정 파일**을 만듭니다.
+
+```bash
+cd /garmin/garmin-fit-pipeline
+cat > .collector.env <<'EOF'
+ENABLE_HEALTH_JSON=1
+HEALTH_DAYS=3
+ENABLE_WELLNESS_RAW=1
+WELLNESS_DAYS=3
+EOF
+chmod 600 .collector.env
+```
+
+| 변수 | 의미 | 예시 |
+| --- | --- | --- |
+| `ENABLE_HEALTH_JSON` | JSON 수집 활성화 (1/0) | `1` |
+| `HEALTH_DAYS` | 완료된 최근 N일 Wellness/Performance JSON 재조회 | `3` |
+| `ENABLE_WELLNESS_RAW` | Wellness 원본 FIT 수집 활성화 (1/0) | `1` |
+| `WELLNESS_DAYS` | 완료된 최근 N일 Wellness 원본 FIT 재조회 | `3` |
+| `GARMIN_TOKEN_DIR` | 기본 토큰 저장소 위치 변경 시 사용 | `/home/garmin/.garminconnect` |
+
+`run_sync.sh`는 매 실행마다 `.collector.env`를 `source`하므로 **SSH 세션을 종료해도 설정이 유지**됩니다. 이 값은 예시이며 서버별 실제 값은 직접 확인해야 합니다.
+
+**Activity 조회 범위는 위 변수와 별도**입니다. `run_sync.sh --days N` 인자가 `sync_fit.py`에 전달됩니다. GitHub에 보관된 서비스 원본은 `--days 30`입니다. Activity를 3일만 조회하려면 아래 systemd `ExecStart` Override를 사용합니다. Activity의 `--days`는 오늘을 포함하는 경계일 조회이고, Health/Wellness `--days`는 완료된 과거 N일 조회입니다.
+
+#### 5.3 개별 수집기 검증
+
+```bash
+cd /garmin/garmin-fit-pipeline
+.venv/bin/python -m py_compile scripts/*.py
+bash -n scripts/run_sync.sh
+.venv/bin/python scripts/sync_fit.py --days 3
+.venv/bin/python scripts/sync_health.py --days 3
+.venv/bin/python scripts/sync_wellness_raw.py --mode api --days 3
+find wellness_raw -type f -name '*.fit' -printf '%h\n' | sort | uniq -c
+```
+
+- `sync_fit.py`는 이미 존재하는 유효한 Activity FIT의 재다운로드를 건너뜁니다.
+- `sync_health.py`는 변경된 JSON만 저장합니다.
+- `sync_wellness_raw.py`는 ZIP CRC·파일명·FIT 형식을 검증한 후 **개별 FIT**를 저장하며 같은 내용은 다시 쓰지 않습니다.
+- Garmin의 비공식 API는 변경되거나 일시적인 속도 제한을 적용할 수 있습니다. 다량 백필은 기간을 나눠 실행합니다.
+- 과거 수동 저장 ZIP을 변환할 때: `.venv/bin/python scripts/sync_wellness_raw.py --mode import --date 2026-10-19 --import-file /path/to/wellness_original.zip`.
+
+### 6. systemd를 통한 자정 자동화
+
+**현재 Repository의 Timer 원본**은 다음과 같습니다.
+
+```ini
+[Timer]
+OnCalendar=*-*-* 00:00:00 Asia/Seoul
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=true
+Unit=garmin-fit-sync.service
+```
+
+관리자 계정에서 서비스와 타이머를 설치합니다.
+
+```bash
+sudo cp /garmin/garmin-fit-pipeline/systemd/garmin-fit-sync.service /etc/systemd/system/
+sudo cp /garmin/garmin-fit-pipeline/systemd/garmin-fit-sync.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now garmin-fit-sync.timer
+sudo systemctl restart garmin-fit-sync.timer
+sudo systemctl is-enabled garmin-fit-sync.timer
+sudo systemctl is-active garmin-fit-sync.timer
+sudo systemctl list-timers --all garmin-fit-sync.timer
+sudo systemctl cat garmin-fit-sync.timer
+sudo systemctl cat garmin-fit-sync.service
+```
+
+**Activity 조회를 3일로 변경하는 선택 설정:** 서비스 원본의 `ExecStart`는 `--days 30`입니다. 설치 경로가 같을 경우 다음 drop-in을 사용할 수 있습니다.
+
+```bash
+sudo mkdir -p /etc/systemd/system/garmin-fit-sync.service.d
+sudo tee /etc/systemd/system/garmin-fit-sync.service.d/lookback.conf >/dev/null <<'EOF'
+[Service]
+ExecStart=
+ExecStart=/garmin/garmin-fit-pipeline/scripts/run_sync.sh --days 3
+EOF
+sudo systemctl daemon-reload
+sudo systemctl show -p ExecStart garmin-fit-sync.service
+```
+
+타이머의 실효 설정은 `systemctl cat`으로 확인하세요. 기존 drop-in이 남아 있다면 원본보다 우선할 수 있습니다. `Persistent=true`는 놓친 실행을 복구할 수 있으므로, 재활성화 직후 서비스가 시작될 수도 있습니다.
+
+배치는 **systemd 서비스 프로세스**로 실행되므로 로그인 세션에 의존하지 않습니다. `Type=oneshot` 서비스는 작업 완료 후 `inactive (dead)`로 표시될 수 있으며 정상 여부는 최근 실행 코드와 Journal 로그로 판단합니다.
+
+### 7. GitHub 동기화·백필·운영 명령
+
+```bash
+# garmin 계정에서: Activity + Wellness JSON + Performance JSON + Wellness FIT + Push
+cd /garmin/garmin-fit-pipeline
+./scripts/run_sync.sh --days 3
+
+# 과거 Activity 데이터 보충: 지정 기간
+.venv/bin/python scripts/sync_fit.py --since 2026-01-01 --until 2026-01-31
+
+# 과거 Wellness 원본: 최대 30일 범위에서 최근 N일
+.venv/bin/python scripts/sync_wellness_raw.py --mode api --days 7
+
+# 데이터별 건수
+find activities -type f -name '*.fit' | wc -l
+find wellness -type f -name '*.json' | wc -l
+find wellness_raw -type f -name '*.fit' | wc -l
+find performance -type f -name '*.json' | wc -l
+
+# Git 동기화 상태
+git fetch origin main
+git status -sb
+
+# 관리자 계정에서: 최근 실행 결과
+sudo journalctl -u garmin-fit-sync.service -n 150 --no-pager
+sudo systemctl status garmin-fit-sync.service
+```
+
+개별 `sync_*.py` 실행은 **다운로드/로컬 저장만 수행**하고, GitHub Commit/Push는 `run_sync.sh`가 수행합니다. 수동으로 개별 수집기를 실행했다면 별도로 Git Push를 하거나 통합 배치를 실행해야 합니다.
+
+**Git 주의사항:** `run_sync.sh`는 시작 시 `git pull --ff-only origin main`을 실행하고 마지막에 Commit/Push합니다. GitHub에서 README를 편집한 뒤 Linux에 같은 파일의 미커밋 변경이 있으면 Pull이 실패할 수 있습니다. 브랜치가 갈라진 경우에는 `git fetch`와 `git status`로 확인하고 충돌을 해결합니다. **`git push --force`를 정기 복구 수단으로 사용하지 않습니다.**
+
+**운영 트러블슈팅**
+
+| 증상 | 확인 및 조치 |
+| --- | --- |
+| 자정 실행 없음 | `systemctl is-active ...timer`, `list-timers`, `systemctl cat`, `journalctl` |
+| Garmin 인증 오류 | `~/.garminconnect/garmin_tokens.json` 존재 여부, `scripts/auth.py` 재로그인 |
+| Push `non-fast-forward` | `git fetch origin main`, `git status -sb`, 이력 충돌 해결 후 Push |
+| Git SSH `publickey` | Deploy Key 공개키 등록/쓰기 권한, private key 경로, `GIT_SSH_COMMAND` |
+| Wellness ZIP만 생성 | 실제 설치된 `sync_wellness_raw.py`가 구형일 수 있음. 새 소스의 `atomic_write`/`archive` 구현 확인 |
+| FIT 분석 불가 | FIT는 바이너리이므로 호환 디코더로 파싱한 데이터 또는 원본 파일 접근 필요 |
+| 파일 누락 | Garmin 기기→Connect 동기화, 조회 기간, API 지원 여부, 수집 로그 확인 |
+
+### 8. 웹 ChatGPT 프로젝트별 분석 방식
+
+**중요:** 데이터 수집 시스템과 GPT 프로젝트는 분리합니다. 저장소에 FIT·JSON을 Push하는 것만으로 ChatGPT가 자동 접근하거나 분석하지 않습니다. 연결된 GitHub 앱의 접근 범위, FIT 바이너리 다운로드 가능 여부, 프로젝트의 실제 자료 접근을 확인해야 합니다.
+
+**프로젝트 준비 절차**
+
+1. 웹 ChatGPT에서 새 **프로젝트(Project)** 를 생성합니다.
+2. 프로젝트마다 아래의 **공통 지침 + 목적별 추가 지침**을 설정합니다. 기술 지침이 길다면 공통 지침을 별도 프로젝트 참고문서로 관리할 수도 있습니다.
+3. 해당 계정/환경에서 제공되는 GitHub 연동을 통해 Private Repository 접근을 허용하거나, 특정 FIT 및 JSON 파일을 프로젝트에 직접 첨부합니다.
+4. FIT가 바이너리라 연결 도구에서 내용을 읽지 못한다면, 호환 FIT 파서(예: `fitdecode`/`fitparse`)로 `session`/`lap`/`record` 등을 파싱한 CSV/JSON을 분석 자료로 제공합니다.
+5. 프로젝트가 실제로 읽은 날짜·파일 경로·활동 ID부터 확인하고, 파일 접근이 불가능하면 **추측 분석 대신 추가 업로드를 요청**합니다.
+
+**분석 항목별 파일 선택**
+
+| 요청 | 먼저 분석할 파일 | 결합할 파일 | 결과 |
+| --- | --- | --- | --- |
+| 특정 운동/인터벌 분석 | `activities/YYYY/MM/DD/*.fit` | 전후 1일 수면·HRV | 페이스/HR/케이던스/랩/회복 구간 |
+| 주간·월간 훈련 요약 | 7~28일 Activity FIT | 일별 Wellness 및 Readiness | 훈련량, 강도 분포, 추세 |
+| 피로와 회복 | `wellness/*.json` | `wellness_raw/*.fit`, Activity FIT | HRV/수면/안정시 HR/스트레스/Body Battery |
+| 레이스 예상 기록 | 최근 8~12주 FIT, 레이스/롱런 | Performance 스냅샷·회복 데이터 | 보수/기본/공격 범위 및 가정 |
+| 오류 검증 | FIT 원본·JSON 동시 조회 | Garmin 조회 날짜 및 내부 타임스탬프 | 누락/중복/타임존/센서 품질 |
+
+**필수 분석 원칙:** 데이터가 실제로 읽혔는지 구분합니다. FIT 바이너리를 텍스트처럼 해석하지 않습니다. `session`·`lap`·`record`의 실제 필드와 단위를 사용합니다. 활동 현지 날짜와 수면 귀속 날짜를 확인합니다. 손목 광학 심박 센서 오류, GPS·케이던스 문제, 지형/기상·신발·보급·체감 강도를 고려합니다. Garmin의 VO₂max·Training Readiness·Body Battery는 가공된 알고리즘 지표입니다. 한두 번의 수치 변동만으로 과훈련·질병·심장 이상을 진단하지 않습니다.
+
+#### 8.1 모든 프로젝트에 적용할 공통 지침 (복사용)
+
+```text
+당신은 Garmin Connect 데이터에 근거하여 러닝·사이클링·회복·레이스 퍼포먼스를 분석하는 전문가다.
+
+목적:
+- 운동 원본 FIT와 Garmin의 Wellness/Performance JSON을 근거로 장기적인 훈련·회복 변화를 평가한다.
+- 관측 사실, 계산값, 해석, 가설을 명확히 구분한다.
+- 사용자 요청 범위를 벗어난 건강 진단이나 확정적 경기 결과 예측은 하지 않는다.
+
+데이터 위치:
+- Private GitHub Repository: suh1027/garmin-fit-repository (환경에 맞게 변경 가능)
+- 활동: activities/YYYY/MM/DD/{activityId}.fit
+- 원본 Wellness: wellness_raw/YYYY/MM/DD/*.fit
+- Wellness JSON: wellness/YYYY/MM/DD/*.json
+- Performance JSON: performance/YYYY/MM/DD/*.json
+- Performance Snapshot: performance/snapshots/YYYY/MM/DD/*.json
+- 표준 시간대: Asia/Seoul (KST)
+
+접근 및 품질:
+1. 분석 전 파일 목록과 날짜·활동 ID를 확인한다. 실제로 접근하지 못한 파일을 읽었다고 주장하지 않는다.
+2. FIT는 바이너리 파일이다. 접근·파싱할 수 없으면 원본 첨부 또는 FIT에서 변환한 CSV/JSON을 요청한다.
+3. FIT 메시지의 시각, 거리, 속도, 심박, 케이던스, 파워, 랩, 일시정지 정보를 실제 존재하는 필드만 사용한다.
+4. Garmin 파생 지표(HRV 상태, VO2max, Body Battery, Training Readiness 등)는 계산된 값으로 취급한다.
+5. Wellness FIT와 JSON의 중복 샘플을 이중 집계하지 않는다.
+6. performance/snapshots의 경로 날짜는 수집 날짜이며 해당 값의 최초 측정 날짜라고 단정하지 않는다.
+7. 누락 데이터는 0이 아니며, GPS 오류·손목 심박 오류·자정 경계·동기화 지연 가능성을 확인한다.
+8. 사용자 개인 기준선, 체감 강도, 최근 레이스, 날씨, 지형, 장비, 통증, 회복 상태를 고려한다.
+9. 심박 존, 최대심박, 역치, FTP 등 확인되지 않은 기준을 만들어내지 않는다.
+10. 레이스 예상 기록은 조건부 범위를 제시하고 불확실성을 설명한다.
+
+응답 형식:
+- 핵심 결론을 먼저 설명한다.
+- 분석 기간과 실제로 접근한 파일/활동 ID를 밝힌다.
+- 주요 수치와 전주/장기 추세를 비교하고 근거를 제시한다.
+- 실행 가능한 훈련·회복 제안을 제공한다.
+- 데이터가 부족하거나 확실하지 않으면 명시한다.
+- 사용자가 지정한 언어로 답한다.
+```
+
+#### 8.2 프로젝트별 추가 지침 예시
+
+**A. Training Performance / 훈련 퍼포먼스**
+
+```text
+우선 최근 7일과 28일 Activity FIT를 분석하고, 훈련 형태·총 거리·운동 시간·강도 분포,
+구간 페이스·심박·케이던스·파워(존재 시)와 회복 구간 품질을 비교한다.
+운동 강도는 개인 기준선과 목표 레이스 맥락에서 설명하고, 인터벌/템포/롱런별 적응을 구분한다.
+```
+
+**B. Recovery & Readiness / 회복·컨디션**
+
+```text
+최근 7~28일 HRV, 수면, 안정시 심박, 스트레스, Body Battery 및 Training Readiness를 확인하고
+훈련 부하·고강도 운동 시점과 시계열로 비교한다. 누락일과 수면의 날짜 귀속을 확인한다.
+단기 수치 변화만으로 의학적 진단이나 컨디션 악화를 확정하지 않는다.
+```
+
+**C. Marathon & Race Planning / 레이스 전략**
+
+```text
+최근 8~12주의 레이스·롱런·템포·인터벌·주간 훈련량과 회복 상태를 결합한다.
+실제 대회 기록과 코스·기온·보급·신발·당일 컨디션을 반영하여
+보수적/기본/공격적인 페이스 및 기록 범위를 제시한다. 전제조건과 실패 위험을 명시한다.
+```
+
+**분석 질문 예시**
+
+- “최근 28일의 활동 FIT와 HRV·수면 데이터를 결합해 훈련 부하와 회복 추세를 분석해줘.”
+- “10월 18일 인터벌의 각 구간 페이스·심박·회복주 패턴을 비교해줘.”
+- “최근 레이스 및 롱런 FIT를 기반으로 마라톤 목표 페이스 3가지 시나리오를 만들어줘.”
+
+### 9. 보안·운영 고려사항
+
+- **Private Repository 유지:** FIT에 위치·운동 동선·생체 정보가 포함될 수 있습니다.
+- **권한 최소화:** 데이터 분석 프로젝트와 GitHub 연결은 허가된 사용자에게만 제공합니다.
+- **자격증명 비공개:** `~/.garminconnect/`, `~/.ssh/`, `.collector.env`, 비밀번호·MFA 코드는 Repository/ChatGPT 분석 데이터에서 제외합니다.
+- **단일 실행:** `run_sync.sh`의 `flock`을 우회하여 같은 저장소를 동시에 쓰지 않습니다.
+- **백업 및 이력:** GitHub는 분석용 버전 저장소이며 별도 보안 백업을 대체하지 않습니다. Private 접근제어와 데이터 보존 정책을 운영자가 결정합니다.
+- **비공식 API:** Garmin Connect의 내부 엔드포인트·응답 필드는 변경될 수 있습니다. 주기적으로 수집 로그와 데이터 신선도를 검사합니다.
+- **문서와 서버 설정의 차이:** GitHub `systemd` 파일을 수정해도 설치된 `/etc/systemd/system/`에 자동 반영되지는 않습니다. drop-in 포함 실효 설정을 검증합니다.
+
+---
+
+## English guide
+
+### 1. Project overview and purpose
+
+This project provides a **general-purpose Garmin data collection and archival pipeline** designed for AI-assisted analysis in **web ChatGPT Projects**. It continuously collects activity files, wellness records and performance summaries into a private GitHub repository.
+
+The same repository can support **multiple ChatGPT Projects with different Project instructions**: training analysis, recovery and readiness, marathon planning, or data-quality auditing. The collection layer is independent of the AI model and prompt.
+
+**It is a data pipeline, not a continuously running ChatGPT agent.** Automatic GitHub Push does not automatically perform an AI analysis or give a private GitHub repository access to a ChatGPT Project.
+
+### 2. System architecture
+
+```text
+Garmin Devices → Garmin Connect
+                   │ Authenticated API access
+                   ▼
+              Linux (Rocky Linux 9)
+                auth.py
+                sync_fit.py
+                sync_health.py
+                sync_wellness_raw.py
+                        ▲
+                 run_sync.sh
+                        ▲
+          systemd timer: 00:00 KST daily
+                        │
+                        ▼
+              GitHub Private Repository
+        activities/  wellness/  wellness_raw/
+                    performance/
+                        │ authorized retrieval or file upload
+                        ▼
+              Web ChatGPT Projects
+       Training | Recovery | Race Planning
+```
+
+**Workflow:** Garmin devices sync to Garmin Connect. A systemd timer launches the collection wrapper. It reuses stored Garmin tokens, fetches data into structured date folders, commits and pushes the changed files to GitHub. ChatGPT separately reads authorized, accessible files when requested.
+
+### 3. Repository structure and source-code responsibilities
+
+```text
+repository/
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── scripts/
+│   ├── auth.py
+│   ├── sync_fit.py
+│   ├── sync_health.py
+│   ├── sync_wellness_raw.py
+│   └── run_sync.sh
+├── systemd/
+│   ├── garmin-fit-sync.service
+│   └── garmin-fit-sync.timer
+├── activities/YYYY/MM/DD/{activityId}.fit
+├── wellness/YYYY/MM/DD/*.json
+├── wellness_raw/YYYY/MM/DD/*.fit
+└── performance/
+    ├── YYYY/MM/DD/training_readiness.json
+    └── snapshots/YYYY/MM/DD/*.json
+```
+
+| Component | Responsibility |
+| --- | --- |
+| `scripts/auth.py` | Interactive Garmin authentication and storage of reusable tokens **outside Git** |
+| `scripts/sync_fit.py` | Download original Activity FIT, validate, avoid duplicate activity downloads, store by local activity start date |
+| `scripts/sync_health.py` | Save daily sleep, HRV, heart-rate, stress, Body Battery, stats and Training Readiness JSON; store metric snapshots separately |
+| `scripts/sync_wellness_raw.py` | Fetch a Wellness ZIP response and validate/extract **individual FIT files** without retaining the ZIP for new downloads |
+| `scripts/run_sync.sh` | Lock concurrent runs, read `.collector.env`, fast-forward pull, execute collectors, Git commit and push |
+| `systemd/garmin-fit-sync.timer` | Trigger collection at **00:00:00 Asia/Seoul daily** |
+| `systemd/garmin-fit-sync.service` | Run the one-shot collector using the configured OS user and working directory |
+| `requirements.txt` | Python libraries required by the collectors |
+
+**Data semantics**
+
+- **Activity FIT:** Captures recorded exercise sessions, laps and records; path date is the local exercise start date.
+- **Wellness raw FIT:** May contain WELLNESS, HRV_STATUS, METRICS, SLEEP_DATA or SLEEP_DISRUPTIONS. The folder is based on the requested Wellness bundle date, which may differ from internal timestamps around midnight.
+- **Wellness JSON:** Garmin-provided sleep, HRV, heart rate, stress and Body Battery values; partially overlaps raw FIT but is not necessarily semantically identical.
+- **Performance:** Daily Training Readiness responses and capture-date **snapshots** for VO₂max, Training Status and Load Focus.
+- A missing file is **missing/unavailable data, not a zero measurement**.
+
+### 4. Prerequisites and installation (Rocky Linux 9)
+
+**Requirements:** Rocky Linux 9 or an adapted Linux environment, Python 3.12 recommended, Git, unzip, systemd, outbound access to Garmin Connect/GitHub, a **private GitHub repository** and a write-enabled GitHub SSH Deploy Key.
+
+The examples below use OS user `garmin` and install path `/garmin/garmin-fit-pipeline`. When deploying elsewhere, update the corresponding absolute paths in the service and runner scripts.
+
+**Step 1 — Prepare the OS and account** (administrator):
+
+```bash
+sudo dnf install -y git openssh-clients unzip python3.12 python3.12-pip
+sudo useradd -m -s /bin/bash garmin  # skip if already present
+sudo mkdir -p /garmin
+sudo chown garmin:garmin /garmin
+```
+
+Adjust the Python packages to those available in your Rocky Linux installation.
+
+**Step 2 — Create a Deploy Key** (as the `garmin` user):
+
+```bash
+sudo -iu garmin
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+ssh-keygen -t ed25519 -f ~/.ssh/garmin_archive_ed25519 -C "garmin-data-pipeline"
+chmod 600 ~/.ssh/garmin_archive_ed25519
+cat ~/.ssh/garmin_archive_ed25519.pub
+```
+
+Register the **public** key in the target GitHub Repository's **Settings → Deploy keys**, allowing write access. Verify GitHub's SSH host key fingerprint before accepting it into `known_hosts`. Test authentication:
+
+```bash
+ssh -T -i ~/.ssh/garmin_archive_ed25519 -o IdentitiesOnly=yes git@github.com
+```
+
+The successful-authentication greeting does not itself prove Push permission.
+
+**Step 3 — Clone and install Python dependencies** (as `garmin`):
+
+```bash
+cd /garmin
+GIT_SSH_COMMAND='ssh -i /home/garmin/.ssh/garmin_archive_ed25519 -o IdentitiesOnly=yes' \
+  git clone git@github.com:suh1027/garmin-fit-repository.git garmin-fit-pipeline
+cd /garmin/garmin-fit-pipeline
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
+chmod +x scripts/run_sync.sh
+```
+
+Substitute your repository URL when distributing this project. **Do not re-clone over an existing deployment.**
+
+### 5. Authentication and collector configuration
+
+**Authenticate Garmin** interactively:
+
+```bash
+cd /garmin/garmin-fit-pipeline
+.venv/bin/python scripts/auth.py
+```
+
+Tokens are kept under `~/.garminconnect/` by default, outside the Git working tree. Never commit credentials.
+
+**Create local runtime configuration**:
+
+```bash
+cat > /garmin/garmin-fit-pipeline/.collector.env <<'EOF'
+ENABLE_HEALTH_JSON=1
+HEALTH_DAYS=3
+ENABLE_WELLNESS_RAW=1
+WELLNESS_DAYS=3
+EOF
+chmod 600 /garmin/garmin-fit-pipeline/.collector.env
+```
+
+These are **recommended example settings**, not a claim about an individual server's active settings. `run_sync.sh` sources this local file each time, independent of any interactive SSH session.
+
+Activity lookback uses the wrapper argument `--days N`. The committed service unit currently specifies **`run_sync.sh --days 30`**; you can override it at the systemd service level. Health/Wellness `--days 3` reprocesses three **previously completed local days**; Activity's `--days 3` includes today and the three-day-back boundary by its current implementation.
+
+**Validate the collectors**:
+
+```bash
+cd /garmin/garmin-fit-pipeline
+.venv/bin/python -m py_compile scripts/*.py
+bash -n scripts/run_sync.sh
+.venv/bin/python scripts/sync_fit.py --days 3
+.venv/bin/python scripts/sync_health.py --days 3
+.venv/bin/python scripts/sync_wellness_raw.py --mode api --days 3
+```
+
+The Wellness collector receives a ZIP transport payload, validates CRC and FIT structure, and saves only individual `.fit` files for newly downloaded data. Convert an existing ZIP using `--mode import --date YYYY-MM-DD --import-file /path/to/file.zip`. Garmin unofficial API endpoints may change.
+
+### 6. Schedule with systemd (00:00 KST)
+
+The committed timer contains:
+
+```ini
+[Timer]
+OnCalendar=*-*-* 00:00:00 Asia/Seoul
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=true
+Unit=garmin-fit-sync.service
+```
+
+Install and enable using an administrative account:
+
+```bash
+sudo cp /garmin/garmin-fit-pipeline/systemd/garmin-fit-sync.service /etc/systemd/system/
+sudo cp /garmin/garmin-fit-pipeline/systemd/garmin-fit-sync.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now garmin-fit-sync.timer
+sudo systemctl list-timers --all garmin-fit-sync.timer
+sudo systemctl cat garmin-fit-sync.timer
+sudo systemctl cat garmin-fit-sync.service
+```
+
+**Optional three-day Activity lookback:** the committed service has `--days 30`. To override it on this example host:
+
+```bash
+sudo mkdir -p /etc/systemd/system/garmin-fit-sync.service.d
+sudo tee /etc/systemd/system/garmin-fit-sync.service.d/lookback.conf >/dev/null <<'EOF'
+[Service]
+ExecStart=
+ExecStart=/garmin/garmin-fit-pipeline/scripts/run_sync.sh --days 3
+EOF
+sudo systemctl daemon-reload
+sudo systemctl show -p ExecStart garmin-fit-sync.service
+```
+
+Check all active drop-ins and effective values. With `Persistent=true`, enabling a timer after missing a scheduled run can trigger a catch-up execution. The timer operates **without an SSH session**.
+
+### 7. Operations, backfill, Git, and troubleshooting
+
+```bash
+# Integrated collection and Git Push (as garmin)
+cd /garmin/garmin-fit-pipeline
+./scripts/run_sync.sh --days 3
+
+# Activity historical backfill
+.venv/bin/python scripts/sync_fit.py --since 2026-01-01 --until 2026-01-31
+
+# Wellness lookback
+.venv/bin/python scripts/sync_wellness_raw.py --mode api --days 7
+
+# Data freshness and file counts
+find activities -type f -name '*.fit' | wc -l
+find wellness -type f -name '*.json' | wc -l
+find wellness_raw -type f -name '*.fit' | wc -l
+find performance -type f -name '*.json' | wc -l
+
+# Repository synchronization
+git fetch origin main
+git status -sb
+
+# Service logs (administrator)
+sudo journalctl -u garmin-fit-sync.service -n 150 --no-pager
+sudo systemctl status garmin-fit-sync.service
+```
+
+Running a single collector saves **local files only**; the integrated wrapper performs Git commit/push. The wrapper attempts a **fast-forward-only pull** first. If local and remote histories diverge, resolve them safely—do not use routine force pushes.
+
+| Symptom | Investigation |
+| --- | --- |
+| Timer does not run | Inspect `is-active`, `list-timers`, `systemctl cat` and `journalctl` |
+| Login failure | Inspect token store and rerun `scripts/auth.py` when required |
+| Git permission denied | Verify Deploy Key, key selection, repository write permission, verified host key |
+| Non-fast-forward Push | Fetch and inspect local/remote commit divergence; resolve conflicts |
+| New Wellness data saved as ZIP | An outdated `sync_wellness_raw.py` may be installed; inspect actual deployed source |
+| Missing days | Check device-to-Garmin sync, API availability, collector lookback and logs |
+| FIT analysis unavailable | Use a compatible FIT decoder and supply faithful CSV/JSON output or original binary |
+
+### 8. Web ChatGPT: project-specific AI analysis
+
+Create separate **ChatGPT Projects** (not separate Git branches) for different analytical goals. A private GitHub repository must be explicitly authorized through supported integrations, or selected files must be uploaded manually. FIT data is binary; connected file browsers may not expose its content. When necessary, decode FIT files with a compatible parser and make the records available as CSV/JSON.
+
+**Recommended source selection**
+
+| Task | Primary sources | Secondary sources |
+| --- | --- | --- |
+| Workout/intervals | Activity FIT: session/lap/record | Adjacent sleep and HRV |
+| Weekly load and training trend | 7–28 days of Activity FIT | Wellness and Training Readiness |
+| Recovery and fatigue | Wellness JSON over 7–28 days | Raw Wellness FIT and recent workload |
+| Marathon race planning | 8–12 weeks of workouts and race FIT | Weather, fueling, shoes and performance snapshots |
+| Quality audits | Raw FIT + corresponding JSON | API-request date, internal timestamps, missing periods |
+
+**Non-negotiable analysis safeguards:** Confirm actual source access and file freshness; never infer the contents of an unread binary FIT; use documented timestamp/units; avoid double-counting repeated HR samples; respect midnight-crossing sleep records; distinguish **Garmin-derived estimates** from measured data; inspect wrist optical HR or GPS artifacts; do not diagnose illness or promise race outcomes based on isolated metrics.
+
+#### 8.1 Common Project instructions (copy/paste)
+
+```text
+You are a data-grounded Garmin running, endurance and recovery analyst.
+
+Goal:
+- Use Garmin activity FIT, wellness FIT and derived wellness/performance JSON to
+  understand training, fitness trends, fatigue, recovery and conditional race readiness.
+- Keep observations, calculations, interpretations and hypotheses separate.
+- Do not issue medical diagnoses or guaranteed race outcomes.
+
+Repository and paths:
+- Private repository: suh1027/garmin-fit-repository (adjust as needed)
+- Activity FIT: activities/YYYY/MM/DD/{activityId}.fit
+- Raw wellness FIT: wellness_raw/YYYY/MM/DD/*.fit
+- Wellness JSON: wellness/YYYY/MM/DD/*.json
+- Daily performance JSON: performance/YYYY/MM/DD/*.json
+- Metric snapshots: performance/snapshots/YYYY/MM/DD/*.json
+- Local time zone: Asia/Seoul.
+
+Access and data quality rules:
+1. Inventory actual accessible files, dates and activity IDs before analysis.
+2. Never claim to have read a file that the connected tools cannot access.
+3. FIT is binary. Parse with a compatible FIT decoder or ask for source FIT /
+   parser-generated CSV/JSON; never infer FIT contents from its filename.
+4. Use only fields present in the decoded session/lap/record messages and
+   documented units. Distinguish moving, timer and elapsed time.
+5. Avoid double-counting overlap between Activity FIT, Wellness FIT and JSON.
+6. Treat VO2max, Body Battery, Training Readiness and status labels as Garmin-derived metrics.
+7. Performance snapshot paths describe collection dates, not necessarily measurement dates.
+8. Missing files are not zero measurements. Check sensor/GPS artifacts, KST boundaries,
+   delayed sync, pauses and sport type.
+9. Interpret results against individual baselines, recent races, RPE, pain, shoes,
+   weather, elevation, fueling and training goals.
+10. Do not invent HR zones, lactate thresholds, power zones or unavailable data.
+11. Present race-time estimates as conditional ranges, with assumptions and uncertainty.
+
+Response format:
+- Begin with concise takeaways.
+- State date range, inspected file paths and actual activity IDs.
+- Provide defensible calculations and comparisons when data support them.
+- Explain main pace/HR/workload/recovery relationships and limitations.
+- End with actionable, appropriately cautious recommendations.
+- Respond in the language requested by the user.
+```
+
+#### 8.2 Add-on instructions by Project type
+
+**A. Training Performance**
+
+```text
+Prioritize the last 7 and 28 days of Activity FIT data. Analyze training volume,
+workout types, lap pacing, HR, cadence, power when available, intensity distribution,
+interval recovery and change relative to the individual's baseline.
+```
+
+**B. Recovery & Readiness**
+
+```text
+Compare 7–28 days of HRV, sleep, resting HR, stress, Body Battery and Training
+Readiness with exercise intensity and timing. Check missing dates and sleep-day
+attribution. Do not infer disease or overtraining from one or two measurements.
+```
+
+**C. Marathon & Race Planning**
+
+```text
+Combine 8–12 weeks of workouts with actual races, long runs, tempo sessions,
+intervals, training volume and recovery. Account for course elevation, weather,
+fueling, shoes and subjective condition. Offer conservative, baseline and
+aggressive pacing/time scenarios, with explicit assumptions and failure risks.
+```
+
+**Example questions**
+
+- "Analyze my last 28 days of activities, HRV and sleep to assess training load and recovery."
+- "Break down the intervals from my October 18 FIT by lap and compare the prior month."
+- "Estimate conservative, baseline and aggressive marathon pacing from actual races and long runs."
+
+### 9. Security and operational limitations
+
+- Keep the repository **private**: FIT files may include GPS traces and sensitive physiological information.
+- Use least-privilege GitHub access for AI-connected services.
+- Never upload Garmin passwords/MFA codes, `.collector.env`, token-store contents or SSH private keys.
+- Avoid concurrent processes writing the same repository; the runner uses `flock`.
+- GitHub is the analysis/version archive, not a complete independent backup strategy.
+- Garmin Connect unofficial API methods can change, so monitor collection errors and freshness.
+- A change to `systemd/*.service` or `*.timer` in Git does **not** modify files already installed under `/etc/systemd/system/`. Verify actual effective overrides on each host.
+
+---
+
+## 기존 상세 운영 문서 / Preserved legacy documentation
+
+> **보존 안내 / Preservation note:** The following is the previous README **in its original form**, retained for its complete installation, debugging and operational history as previously requested. Some historical statements refer to earlier FIT-only or ZIP-based collectors and old timer defaults. **For new deployments, follow the current Korean or English guide above.**
+>
+> **아래는 기존 README 원문을 삭제하거나 수정하지 않고 유지한 부분입니다.** 초기 도입 기록이나 당시의 코드/설정 안내가 포함될 수 있으므로 현재 구성을 적용할 때는 위 한·영 가이드를 우선하세요.
+
+---
+
 # Garmin Connect FIT Archive Pipeline — Rocky Linux 9
 
 Garmin Connect에서 **원본 액티비티 FIT 파일을 자동 수집**하고, Rocky Linux 9 VM에서 일별 디렉터리로 분류한 뒤 **GitHub Private Repository에 매일 자동 Push**하는 파이프라인입니다. GPT를 이용한 분석은 별도의 단계로 분리합니다.
