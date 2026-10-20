@@ -8,6 +8,7 @@ Type=oneshot
 User=garmin
 WorkingDirectory=/garmin/garmin-fit-pipeline
 Environment=HOME=/home/garmin
+ExecStartPre=+/usr/sbin/restorecon -v /garmin/garmin-fit-pipeline/scripts/run_sync.sh
 ExecStart=/garmin/garmin-fit-pipeline/scripts/run_sync.sh --days 30
 TimeoutStartSec=45min
 NoNewPrivileges=true

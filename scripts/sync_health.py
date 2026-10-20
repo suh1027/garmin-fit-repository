@@ -45,7 +45,7 @@ SNAPSHOTS = {
 
 def arguments():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--days", type=int, default=7, help="Past completed calendar days (default: 7)")
+    p.add_argument("--days", type=int, default=7, help="Previous N days plus current day (default: 7)")
     p.add_argument("--pause", type=float, default=1.0, help="Pause seconds between API calls")
     p.add_argument("--no-snapshots", action="store_true", help="Do not collect current performance snapshots")
     return p.parse_args()
@@ -95,6 +95,8 @@ def main():
     client = Garmin()
     client.login(str(tokenstore))
 
+    # GARMIN_SYNC_SNAPSHOT_HISTORY_V2
+    snapshot_run_id = datetime.now(KST).strftime('%H%M%S%f')
     changes = errors = unavailable = 0
     blocked = False
 
@@ -107,6 +109,11 @@ def main():
         try:
             response = fetch(client, method, day_str)
             path = base / f"{metric}.json"
+            if kind == "snapshot" and response not in (None, {}, []):
+                write_if_changed(
+                    base / "history" / snapshot_run_id / f"{metric}.json",
+                    response
+                )
             if write_if_changed(path, response):
                 changes += 1
                 LOG.info("SAVED %s", path.relative_to(ROOT))
@@ -127,7 +134,7 @@ def main():
 
     # 00:00 KST run: yesterday through N completed days, avoid assigning incomplete
     # today values to a complete daily record. Rescan days for late sync updates.
-    for offset in range(1, opts.days + 1):
+    for offset in range(0, opts.days + 1):
         date = today - timedelta(days=offset)
         d = date.isoformat()
         for category, metrics in DAILY.items():
