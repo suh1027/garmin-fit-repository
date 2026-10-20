@@ -14,6 +14,10 @@ This repository is a reusable pipeline for archiving Garmin activity, wellness a
 
 ---
 
+> **Current source of truth (2026-10-20) / 최신 운영 기준:** The repository now schedules collection at **00:00 and 09:00 KST**, re-fetches the **current day + preceding days** for daily Wellness/Performance and raw Wellness FIT, and keeps **per-execution Performance snapshot history**. Existing historical installation notes below may describe earlier midnight-only or previous-day-only behavior; actual source and loaded systemd units take precedence.
+>
+> **SELinux 장애 대응:** [systemd 203/EXEC: init_t → user_home_t 실행 거부 및 재발 방지](docs/troubleshooting/selinux-systemd-203-exec.md). Collector 실행 계정은 계속 `garmin`입니다.
+
 ## 한국어 가이드
 
 ### 1. 프로젝트 개요와 사용 목적
@@ -48,7 +52,7 @@ Garmin Watch / Cycling Device / Sensors
         └────────────────────────────────────────────┘
                   ▲
        systemd timer / service
-          매일 00:00 KST
+          매일 00:00·09:00 KST
                   │
                   ▼
          GitHub Private Repository
@@ -122,7 +126,7 @@ repository/
 | `scripts/sync_wellness_raw.py` | Wellness 원본 FIT 수집 | Wellness ZIP 응답을 메모리에서 검증하고 개별 FIT로 추출; 신규 ZIP은 영구 보관하지 않음 |
 | `scripts/run_sync.sh` | 전체 오케스트레이션 | `flock` 중복 실행 방지, 환경 설정 로드, Git fast-forward pull, 수집기 순차 실행, Commit/Push |
 | `systemd/garmin-fit-sync.service` | 실제 배치 실행 | `oneshot`, `garmin` 계정, 실행 경로·타임아웃 설정 |
-| `systemd/garmin-fit-sync.timer` | 스케줄 | 기본 설정 **매일 00:00:00 Asia/Seoul** |
+| `systemd/garmin-fit-sync.timer` | 스케줄 | **매일 00:00 및 09:00 Asia/Seoul** |
 | `requirements.txt` | Python 의존성 | `garminconnect>=0.3,<0.4`, `curl_cffi` |
 | `.gitignore` | 민감/임시 파일 제외 | 인증 정보, 가상환경, 로컬 설정, Wellness ZIP 등 제외 |
 
@@ -221,14 +225,14 @@ chmod 600 .collector.env
 | 변수 | 의미 | 예시 |
 | --- | --- | --- |
 | `ENABLE_HEALTH_JSON` | JSON 수집 활성화 (1/0) | `1` |
-| `HEALTH_DAYS` | 완료된 최근 N일 Wellness/Performance JSON 재조회 | `3` |
+| `HEALTH_DAYS` | 당일 + 이전 N일 Wellness/Performance JSON 재조회 | `3` |
 | `ENABLE_WELLNESS_RAW` | Wellness 원본 FIT 수집 활성화 (1/0) | `1` |
-| `WELLNESS_DAYS` | 완료된 최근 N일 Wellness 원본 FIT 재조회 | `3` |
+| `WELLNESS_DAYS` | 당일 + 이전 N일 Wellness 원본 FIT 재조회 | `3` |
 | `GARMIN_TOKEN_DIR` | 기본 토큰 저장소 위치 변경 시 사용 | `/home/garmin/.garminconnect` |
 
 `run_sync.sh`는 매 실행마다 `.collector.env`를 `source`하므로 **SSH 세션을 종료해도 설정이 유지**됩니다. 이 값은 예시이며 서버별 실제 값은 직접 확인해야 합니다.
 
-**Activity 조회 범위는 위 변수와 별도**입니다. `run_sync.sh --days N` 인자가 `sync_fit.py`에 전달됩니다. GitHub에 보관된 서비스 원본은 `--days 30`입니다. Activity를 3일만 조회하려면 아래 systemd `ExecStart` Override를 사용합니다. Activity의 `--days`는 오늘을 포함하는 경계일 조회이고, Health/Wellness `--days`는 완료된 과거 N일 조회입니다.
+**Activity 조회 범위는 위 변수와 별도**입니다. `run_sync.sh --days N` 인자가 `sync_fit.py`에 전달됩니다. GitHub에 보관된 서비스 원본은 `--days 30`입니다. Activity를 3일만 조회하려면 아래 systemd `ExecStart` Override를 사용합니다. Activity의 `--days`는 오늘을 포함하는 경계일 조회이고, Health/Wellness `--days`는 당일 + 이전 N일 조회입니다(총 N+1일).
 
 #### 5.3 개별 수집기 검증
 
@@ -248,13 +252,14 @@ find wellness_raw -type f -name '*.fit' -printf '%h\n' | sort | uniq -c
 - Garmin의 비공식 API는 변경되거나 일시적인 속도 제한을 적용할 수 있습니다. 다량 백필은 기간을 나눠 실행합니다.
 - 과거 수동 저장 ZIP을 변환할 때: `.venv/bin/python scripts/sync_wellness_raw.py --mode import --date 2026-10-19 --import-file /path/to/wellness_original.zip`.
 
-### 6. systemd를 통한 자정 자동화
+### 6. systemd를 통한 00:00·09:00 자동화
 
 **현재 Repository의 Timer 원본**은 다음과 같습니다.
 
 ```ini
 [Timer]
 OnCalendar=*-*-* 00:00:00 Asia/Seoul
+OnCalendar=*-*-* 09:00:00 Asia/Seoul
 AccuracySec=1s
 RandomizedDelaySec=0
 Persistent=true
@@ -336,6 +341,43 @@ sudo systemctl status garmin-fit-sync.service
 | Wellness ZIP만 생성 | 실제 설치된 `sync_wellness_raw.py`가 구형일 수 있음. 새 소스의 `atomic_write`/`archive` 구현 확인 |
 | FIT 분석 불가 | FIT는 바이너리이므로 호환 디코더로 파싱한 데이터 또는 원본 파일 접근 필요 |
 | 파일 누락 | Garmin 기기→Connect 동기화, 조회 기간, API 지원 여부, 수집 로그 확인 |
+
+#### 7.1 당일 데이터 포함, 하루 2회 및 수동 실행 (2026-10-20)
+
+**실제 GitHub 소스 기준:** Timer는 **00:00 및 09:00 KST**, 수동 수집은 `sudo systemctl start garmin-fit-sync.service`를 사용합니다. systemd는 시스템 서비스로 관리하고 실제 Collector는 `User=garmin` 권한으로 실행됩니다.
+
+| 수집 항목 | 조회 정책 | 주요 경로 |
+| --- | --- | --- |
+| Activity FIT | 당일 포함 최근 30일 경계 조회 (Service `--days 30`) | `activities/YYYY/MM/DD/*.fit` |
+| Sleep, HRV, Heart Rate, Stress, Body Battery 및 일별 통계 JSON | **당일 + 이전 `HEALTH_DAYS`일** 재조회 | `wellness/YYYY/MM/DD/*.json` |
+| Training Readiness | **당일 + 이전 `HEALTH_DAYS`일** 재조회 | `performance/YYYY/MM/DD/training_readiness.json` |
+| Wellness 원본 개별 FIT | **당일 + 이전 `WELLNESS_DAYS`일** 재조회 | `wellness_raw/YYYY/MM/DD/*.fit` |
+| VO₂max, Training Status, Load Focus | 실행 시점의 최신 상태와 실행별 이력 저장 | `performance/snapshots/YYYY/MM/DD/*.json`, `history/HHMMSSffffff/*.json` |
+
+- `HEALTH_DAYS=7` 또는 `WELLNESS_DAYS=7`은 **당일 + 과거 7일**, 총 8개 날짜를 재조회한다는 뜻입니다. `.collector.env` 설정값이 Runner의 기본값보다 우선합니다. 특히 `ENABLE_WELLNESS_RAW=0`이면 원본 Wellness FIT 수집은 비활성화됩니다.
+- **당일 값은 미완성:** 새벽 활동과 기상 후 수면/HRV는 Garmin Connect 기기 동기화와 비공식 API 제공 시점에 영향을 받습니다. 반복 실행으로 지연 반영을 보충합니다. 당일 Wellness ZIP의 404/NotFound는 `PENDING`으로 처리하여 이후 재시도합니다.
+- Snapshot 최신 파일은 다음 실행에서 갱신될 수 있으며, `history/HHMMSSffffff`는 저장 시각을 보존합니다. 이는 **실제 지표 계산 시각과 같다고 단정할 수 없습니다.**
+- **Garmin 데이터 수집과 ChatGPT 분석은 별도 작업**입니다. GitHub에 Push했다고 자동 분석이 실행되는 것은 아닙니다.
+
+```bash
+# 실제 Timer, Service, drop-in 및 다음 실행 점검
+sudo systemctl cat garmin-fit-sync.timer
+sudo systemctl cat garmin-fit-sync.service
+sudo systemctl list-timers --all | grep garmin
+
+# 수동 전체 수집 및 Git Push
+sudo systemctl start garmin-fit-sync.service
+
+# 상태와 실시간 로그
+sudo systemctl status garmin-fit-sync.service --no-pager -l
+sudo journalctl -u garmin-fit-sync.service -f -o cat
+
+# Collector별 결과와 Snapshot history 확인
+sudo journalctl -u garmin-fit-sync.service -n 150 --no-pager -o cat
+find performance/snapshots/2026/10/20/history -type f 2>/dev/null | sort
+```
+
+**SELinux 전용 Troubleshooting:** 2026-10-20 발생한 `203/EXEC Permission denied`와 `init_t → user_home_t` AVC는 [독립 장애 대응 문서](docs/troubleshooting/selinux-systemd-203-exec.md)를 참고하세요. 전체 SELinux 비활성화나 root로 Collector 실행은 권장하지 않습니다.
 
 ### 8. 웹 ChatGPT 프로젝트별 분석 방식
 
@@ -469,7 +511,7 @@ Garmin Devices → Garmin Connect
                         ▲
                  run_sync.sh
                         ▲
-          systemd timer: 00:00 KST daily
+          systemd timer: 00:00 / 09:00 KST daily
                         │
                         ▼
               GitHub Private Repository
@@ -514,7 +556,7 @@ repository/
 | `scripts/sync_health.py` | Save daily sleep, HRV, heart-rate, stress, Body Battery, stats and Training Readiness JSON; store metric snapshots separately |
 | `scripts/sync_wellness_raw.py` | Fetch a Wellness ZIP response and validate/extract **individual FIT files** without retaining the ZIP for new downloads |
 | `scripts/run_sync.sh` | Lock concurrent runs, read `.collector.env`, fast-forward pull, execute collectors, Git commit and push |
-| `systemd/garmin-fit-sync.timer` | Trigger collection at **00:00:00 Asia/Seoul daily** |
+| `systemd/garmin-fit-sync.timer` | Trigger collection at **00:00 and 09:00 Asia/Seoul daily** |
 | `systemd/garmin-fit-sync.service` | Run the one-shot collector using the configured OS user and working directory |
 | `requirements.txt` | Python libraries required by the collectors |
 
@@ -601,7 +643,7 @@ chmod 600 /garmin/garmin-fit-pipeline/.collector.env
 
 These are **recommended example settings**, not a claim about an individual server's active settings. `run_sync.sh` sources this local file each time, independent of any interactive SSH session.
 
-Activity lookback uses the wrapper argument `--days N`. The committed service unit currently specifies **`run_sync.sh --days 30`**; you can override it at the systemd service level. Health/Wellness `--days 3` reprocesses three **previously completed local days**; Activity's `--days 3` includes today and the three-day-back boundary by its current implementation.
+Activity lookback uses the wrapper argument `--days N`. The committed service unit currently specifies **`run_sync.sh --days 30`**; you can override it at the systemd service level. Health/Wellness `--days 3` reprocesses three **current day plus N preceding days**; Activity's `--days 3` includes today and the three-day-back boundary by its current implementation.
 
 **Validate the collectors**:
 
@@ -616,13 +658,14 @@ bash -n scripts/run_sync.sh
 
 The Wellness collector receives a ZIP transport payload, validates CRC and FIT structure, and saves only individual `.fit` files for newly downloaded data. Convert an existing ZIP using `--mode import --date YYYY-MM-DD --import-file /path/to/file.zip`. Garmin unofficial API endpoints may change.
 
-### 6. Schedule with systemd (00:00 KST)
+### 6. Schedule with systemd (00:00 and 09:00 KST)
 
 The committed timer contains:
 
 ```ini
 [Timer]
 OnCalendar=*-*-* 00:00:00 Asia/Seoul
+OnCalendar=*-*-* 09:00:00 Asia/Seoul
 AccuracySec=1s
 RandomizedDelaySec=0
 Persistent=true
@@ -695,6 +738,25 @@ Running a single collector saves **local files only**; the integrated wrapper pe
 | New Wellness data saved as ZIP | An outdated `sync_wellness_raw.py` may be installed; inspect actual deployed source |
 | Missing days | Check device-to-Garmin sync, API availability, collector lookback and logs |
 | FIT analysis unavailable | Use a compatible FIT decoder and supply faithful CSV/JSON output or original binary |
+
+#### 7.1 Current-day collection and twice-daily scheduling (2026-10-20)
+
+The current code schedules **00:00 and 09:00 Asia/Seoul**, supports manual runs via `sudo systemctl start garmin-fit-sync.service`, and keeps `User=garmin` in the existing systemd service.
+
+- Activity FIT includes the current day and the separately configured Activity lookback (`run_sync.sh --days 30` by default in the service).
+- Daily sleep/HRV/heart-rate/stress/Body Battery and Training Readiness JSON now include the **current day plus the prior `HEALTH_DAYS` days**.
+- Individual raw Wellness FIT includes the **current day plus the prior `WELLNESS_DAYS` days**. Today's bundle may log `PENDING` when Garmin has not published it.
+- Performance latest snapshots are stored under `performance/snapshots/YYYY/MM/DD/*.json` with additional per-run history under `history/HHMMSSffffff/*.json`. Capture timestamps are not necessarily metric calculation timestamps.
+- Today's data can be partial, and `.collector.env` overrides default Collector options. Runs re-query recent dates and commit/push changed data.
+
+```bash
+sudo systemctl cat garmin-fit-sync.timer garmin-fit-sync.service
+sudo systemctl list-timers --all | grep garmin
+sudo systemctl start garmin-fit-sync.service
+sudo journalctl -u garmin-fit-sync.service -f -o cat
+```
+
+Dedicated SELinux troubleshooting: [systemd 203/EXEC denied execution](docs/troubleshooting/selinux-systemd-203-exec.md). Check AVC audit events; do not disable SELinux.
 
 ### 8. Web ChatGPT: project-specific AI analysis
 
