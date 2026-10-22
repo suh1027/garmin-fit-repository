@@ -1,38 +1,70 @@
 [
   {
-    "bodyBatteryValueDescriptorDTOList": null,
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 50,
+        "durationInMilliseconds": 25800000,
+        "eventStartTimeGmt": "2026-10-21T15:05:38.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-21T22:17:14.0",
+      "feedbackLongType": "EARLY_MORNING_HIGH_MODERATE_HIGH_BB_BEFORE_SLEEP_BB_YESTERDAY_MORNING",
+      "feedbackShortType": null
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
     "bodyBatteryValuesArray": [
       [
-        1792627200001,
-        null
+        1792594800000,
+        37
       ],
       [
-        1792627200002,
-        null
+        1792603440000,
+        48
       ],
       [
-        1792627200003,
-        null
+        1792603800000,
+        49
       ],
       [
-        1792627200004,
-        null
+        1792612260000,
+        71
       ],
       [
-        1792627200005,
-        null
+        1792612800000,
+        70
       ],
       [
-        1792627200006,
-        null
+        1792620720000,
+        87
       ]
     ],
-    "charged": null,
+    "charged": 51,
     "date": "2026-10-22",
-    "drained": null,
-    "endTimestampGMT": null,
-    "endTimestampLocal": null,
-    "startTimestampGMT": null,
-    "startTimestampLocal": null
+    "drained": 1,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-21T16:02:07.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INTENSIVE_EXERCISE",
+      "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INTENSIVE_EXERCISE"
+    },
+    "endTimestampGMT": "2026-10-21T22:27:00.0",
+    "endTimestampLocal": "2026-10-22T07:27:00.0",
+    "startTimestampGMT": "2026-10-21T15:00:00.0",
+    "startTimestampLocal": "2026-10-22T00:00:00.0"
   }
 ]
