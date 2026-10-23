@@ -1,38 +1,70 @@
 [
   {
-    "bodyBatteryValueDescriptorDTOList": null,
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 49,
+        "durationInMilliseconds": 21420000,
+        "eventStartTimeGmt": "2026-10-22T16:30:20.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "MODERATE",
+      "eventTimestampGmt": "2026-10-22T22:29:01.0",
+      "feedbackLongType": "EARLY_MORNING_HIGH_MODERATE_HIGH_BB_YESTERDAY_MORNING",
+      "feedbackShortType": null
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
     "bodyBatteryValuesArray": [
       [
-        1792713600001,
-        null
+        1792682460000,
+        22
       ],
       [
-        1792713600002,
-        null
+        1792689840000,
+        26
       ],
       [
-        1792713600003,
-        null
+        1792690380000,
+        27
       ],
       [
-        1792713600004,
-        null
+        1792699380000,
+        49
       ],
       [
-        1792713600005,
-        null
+        1792699560000,
+        49
       ],
       [
-        1792713600006,
-        null
+        1792707480000,
+        71
       ]
     ],
-    "charged": null,
+    "charged": 50,
     "date": "2026-10-23",
-    "drained": null,
-    "endTimestampGMT": null,
-    "endTimestampLocal": null,
-    "startTimestampGMT": null,
-    "startTimestampLocal": null
+    "drained": 2,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-22T17:57:03.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE",
+      "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE"
+    },
+    "endTimestampGMT": "2026-10-22T22:38:00.0",
+    "endTimestampLocal": "2026-10-23T07:38:00.0",
+    "startTimestampGMT": "2026-10-22T15:00:00.0",
+    "startTimestampLocal": "2026-10-23T00:00:00.0"
   }
 ]
