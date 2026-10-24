@@ -27,13 +27,22 @@
         "feedbackType": "EXERCISE_TRAINING_EFFECT_2",
         "shortFeedback": "MAINTAINING_AEROBIC_BASE",
         "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": 2,
+        "durationInMilliseconds": 2280000,
+        "eventStartTimeGmt": "2026-10-23T11:31:56.0",
+        "eventType": "NAP",
+        "feedbackType": "NAP_RECOVERING_BODY_BATTERY_INCREASE",
+        "shortFeedback": "RESTFUL_NAP",
+        "timezoneOffset": 32400000
       }
     ],
     "bodyBatteryDynamicFeedbackEvent": {
-      "bodyBatteryLevel": "MODERATE",
-      "eventTimestampGmt": "2026-10-23T07:17:07.0",
-      "feedbackLongType": "DAY_RECOVERING_AND_EXERCISE",
-      "feedbackShortType": "DAY_RECOVERING_AND_EXERCISE"
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-23T12:12:31.0",
+      "feedbackLongType": "SLEEP_PREPARATION_RECOVERING_AND_EXERCISE",
+      "feedbackShortType": "SLEEP_PREPARATION_RECOVERING_AND_EXERCISE"
     },
     "bodyBatteryValueDescriptorDTOList": [
       {
@@ -51,37 +60,37 @@
         22
       ],
       [
-        1792701540000,
-        55
-      ],
-      [
-        1792701720000,
-        55
+        1792709100000,
+        73
       ],
       [
         1792712520000,
         75
       ],
       [
-        1792722240000,
-        63
+        1792738620000,
+        44
       ],
       [
-        1792742220000,
-        39
+        1792738800000,
+        43
+      ],
+      [
+        1792754280000,
+        30
       ]
     ],
-    "charged": 54,
+    "charged": 69,
     "date": "2026-10-23",
-    "drained": 39,
+    "drained": 49,
     "endOfDayBodyBatteryDynamicFeedbackEvent": {
       "bodyBatteryLevel": "HIGH",
       "eventTimestampGmt": "2026-10-22T17:57:03.0",
       "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE",
       "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE"
     },
-    "endTimestampGMT": "2026-10-23T08:01:00.0",
-    "endTimestampLocal": "2026-10-23T17:01:00.0",
+    "endTimestampGMT": "2026-10-23T15:00:00.0",
+    "endTimestampLocal": "2026-10-24T00:00:00.0",
     "startTimestampGMT": "2026-10-22T15:00:00.0",
     "startTimestampLocal": "2026-10-23T00:00:00.0"
   }

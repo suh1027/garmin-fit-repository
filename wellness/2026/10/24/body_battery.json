@@ -1,38 +1,70 @@
 [
   {
-    "bodyBatteryValueDescriptorDTOList": null,
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 42,
+        "durationInMilliseconds": 19080000,
+        "eventStartTimeGmt": "2026-10-23T12:30:56.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "MODERATE",
+      "eventTimestampGmt": "2026-10-23T18:16:55.0",
+      "feedbackLongType": "EARLY_MORNING_HIGH_MODERATE_HIGH_BB_BEFORE_SLEEP",
+      "feedbackShortType": null
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
     "bodyBatteryValuesArray": [
       [
-        1792800000001,
-        null
+        1792767600000,
+        44
       ],
       [
-        1792800000002,
-        null
+        1792771560000,
+        56
       ],
       [
-        1792800000003,
-        null
+        1792771740000,
+        56
       ],
       [
-        1792800000004,
-        null
+        1792775520000,
+        69
       ],
       [
-        1792800000005,
-        null
+        1792775880000,
+        70
       ],
       [
-        1792800000006,
-        null
+        1792778580000,
+        74
       ]
     ],
-    "charged": null,
+    "charged": 31,
     "date": "2026-10-24",
-    "drained": null,
-    "endTimestampGMT": null,
-    "endTimestampLocal": null,
-    "startTimestampGMT": null,
-    "startTimestampLocal": null
+    "drained": 1,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-23T17:56:07.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_EXERCISE",
+      "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_EXERCISE"
+    },
+    "endTimestampGMT": "2026-10-23T18:19:00.0",
+    "endTimestampLocal": "2026-10-24T03:19:00.0",
+    "startTimestampGMT": "2026-10-23T15:00:00.0",
+    "startTimestampLocal": "2026-10-24T00:00:00.0"
   }
 ]
