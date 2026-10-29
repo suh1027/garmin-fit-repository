@@ -1,38 +1,70 @@
 [
   {
-    "bodyBatteryValueDescriptorDTOList": null,
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 46,
+        "durationInMilliseconds": 20340000,
+        "eventStartTimeGmt": "2026-10-28T16:54:17.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-28T23:00:09.0",
+      "feedbackLongType": "EARLY_MORNING_HIGH_MODERATE_HIGH_BB_BEFORE_SLEEP_BB_YESTERDAY_MORNING",
+      "feedbackShortType": null
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
     "bodyBatteryValuesArray": [
       [
-        1793232000001,
-        null
+        1793200500000,
+        44
       ],
       [
-        1793232000002,
-        null
+        1793205180000,
+        40
       ],
       [
-        1793232000003,
-        null
+        1793209680000,
+        40
       ],
       [
-        1793232000004,
-        null
+        1793219580000,
+        68
       ],
       [
-        1793232000005,
-        null
+        1793219760000,
+        69
       ],
       [
-        1793232000006,
-        null
+        1793227500000,
+        87
       ]
     ],
-    "charged": null,
+    "charged": 50,
     "date": "2026-10-29",
-    "drained": null,
-    "endTimestampGMT": null,
-    "endTimestampLocal": null,
-    "startTimestampGMT": null,
-    "startTimestampLocal": null
+    "drained": 7,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-28T18:40:13.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE",
+      "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE"
+    },
+    "endTimestampGMT": "2026-10-28T23:19:00.0",
+    "endTimestampLocal": "2026-10-29T08:19:00.0",
+    "startTimestampGMT": "2026-10-28T15:00:00.0",
+    "startTimestampLocal": "2026-10-29T00:00:00.0"
   }
 ]
