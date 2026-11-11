@@ -1,6 +1,6 @@
 # Historical Garmin backfill
 
-Use the existing Rocky Linux collector account and virtual environment. This is an independent read-only collection job; daily systemd timer and existing scripts are unchanged.
+Use the existing Rocky Linux collector account and virtual environment. The shell launcher loads .collector.env and the existing archive SSH identity. This is an independent read-only collection job; daily systemd timer and existing scripts are unchanged.
 
 ## Security prerequisite
 The origin must be PRIVATE before publishing health/GPS records. The script checks the exact origin URL and verifies GitHub visibility using authenticated `gh api` twice. No credentials are requested in chat. Local staging is outside the repository and is not pushed by the normal timer. The existing daily job is not modified by this feature; protect the repository before running it.
@@ -11,7 +11,7 @@ sudo -iu garmin
 cd /garmin/garmin-fit-pipeline
 git pull --ff-only origin main
 .venv/bin/pip install fitdecode
-.venv/bin/python scripts/run_backfill.py --since 2026-08-19 --until 2026-11-10
+bash scripts/run_backfill.sh --since 2026-08-19 --until 2026-11-10
 ```
 Dates are inclusive and completed days in Asia/Seoul. To publish, authenticate the GitHub CLI on the server with access to this private repository, then rerun the same command with `--push`. Existing server Git SSH key must work for push. Do not use public repositories. The script resumes successful records from ~/.local/state/garmin-backfill/<since>_<until>/manifest.json; --refresh forces refetch. A run with required gaps returns 2, an interrupted run returns 1. Optional unsupported/empty/no-data endpoints are listed separately. --allow-partial --push explicitly publishes successful records with a gap manifest, never represents them as complete. Do not use this flag until gaps are reviewed.
 
