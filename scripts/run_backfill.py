@@ -412,7 +412,7 @@ class Collector:
             raise RuntimeError("No completed files available for publication.")
         allowed_roots = {"activities", "activity_inventory", "activity_details",
                          "wellness", "wellness_raw", "performance"}
-        verified = {}
+        verified_paths = []
         for p, digest in sorted(expected_hashes.items()):
             relative = Path(p)
             if relative.is_absolute() or ".." in relative.parts or not relative.parts or relative.parts[0] not in allowed_roots:
@@ -423,10 +423,10 @@ class Collector:
             payload = source.read_bytes()
             if not isinstance(digest, str) or hashlib.sha256(payload).hexdigest() != digest:
                 raise RuntimeError("Staged hash mismatch: " + p)
-            verified[p] = payload
-        # Validate ALL staged hashes before copying into the repository.
-        for p, payload in verified.items():
-            save(ROOT/p, payload)
+            verified_paths.append(p)
+        # Validate ALL staged hashes before copying; copy one file at a time to limit RAM.
+        for p in verified_paths:
+            save(ROOT/p, (self.stage/p).read_bytes())
         manifest_rel = Path("backfill_manifests")/(self.manifest["interval"]+".json")
         save(ROOT/manifest_rel, json_bytes(self.manifest))
         git("add", "--", "activities", "activity_inventory", "wellness", "wellness_raw",
