@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only historical Garmin collector. Stage first; publish only to verified private origin."""
+"""Read-only historical Garmin collector. Stage first; publishing requires explicit opt-in."""
 from __future__ import annotations
 
 import argparse
@@ -11,7 +11,6 @@ from io import BytesIO
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import time
@@ -121,13 +120,17 @@ def git(*args):
     return subprocess.run(["git", "-C", str(ROOT), *args], check=True,
                           stdout=subprocess.PIPE, text=True).stdout.strip()
 
-def private_origin():
-    # Never publish health/GPS data to a public or unverified repository.
+def private_origin(allow_public=False):
+    # Exact origin is always enforced. Public exposure requires explicit opt-in.
     url = git("remote", "get-url", "origin")
     allowed = {f"https://github.com/{REPO}", f"https://github.com/{REPO}.git",
                f"git@github.com:{REPO}.git", f"ssh://git@github.com/{REPO}.git"}
     if url not in allowed:
         raise RuntimeError("origin is not the expected GitHub repository")
+    if allow_public:
+        print("WARNING: You explicitly requested PUBLIC publication of raw GPS and health data.",
+              file=sys.stderr, flush=True)
+        return
     try:
         result = subprocess.run(["gh", "api", f"repos/{REPO}", "--jq", ".visibility"],
                                 capture_output=True, text=True, check=True, timeout=30)
@@ -142,7 +145,9 @@ def parse_args():
     p.add_argument("--until", required=True, type=date.fromisoformat)
     p.add_argument("--pause", type=float, default=2)
     p.add_argument("--retries", type=int, default=3)
-    p.add_argument("--push", action="store_true", help="Publish validated archive to verified private origin")
+    p.add_argument("--push", action="store_true", help="Publish data to GitHub")
+    p.add_argument("--allow-public", action="store_true", help="Explicit opt-in to PUBLIC GPS/health data publication")
+    p.add_argument("--publish-only", action="store_true", help="Push completed staging without Garmin API requests")
     p.add_argument("--allow-partial", action="store_true", help="Permit publication with recorded required gaps")
     p.add_argument("--refresh", action="store_true", help="Refetch successful API results instead of resuming")
     p.add_argument("--no-current", action="store_true")
@@ -152,11 +157,23 @@ class StopCollection(Exception):
     pass
 
 class Collector:
-    def __init__(self, opts, stage, client):
+    def __init__(self, opts, stage, client, existing_only=False):
         self.opts, self.stage, self.client = opts, stage, client
         self.manifest_path = stage / "manifest.json"
+        if existing_only and not self.manifest_path.is_file():
+            raise RuntimeError("Completed staged manifest not found.")
         self.manifest = json.loads(self.manifest_path.read_text()) if self.manifest_path.exists() else {}
         self.records = self.manifest.setdefault("records", {})
+        if existing_only:
+            if self.manifest.get("state") not in ("complete_core", "partial"):
+                raise RuntimeError("Manifest is not a completed collection.")
+            if (self.manifest.get("since"), self.manifest.get("until")) != (str(opts.since), str(opts.until)):
+                raise RuntimeError("Staged manifest dates do not match the requested dates.")
+            keys = self.manifest.get("active_records")
+            if not isinstance(keys, list) or not keys:
+                raise RuntimeError("Missing active_records in completed manifest.")
+            self.active = set(keys)
+            return
         self.active = set()
         self.manifest.update(since=str(opts.since), until=str(opts.until),
                              schema=1, timezone="Asia/Seoul", state="running")
@@ -371,23 +388,45 @@ class Collector:
 
     def publish(self):
         # Only current successful results; stale/failed files remain in staging.
-        private_origin()
+        private_origin(self.opts.allow_public)
         if git("status", "--porcelain"):
             raise RuntimeError("Repository working tree is not clean; resolve changes before publishing.")
         if git("branch", "--show-current") != "main":
             raise RuntimeError("Repository must be on main.")
         git("pull", "--ff-only", "origin", "main")
-        paths = set()
+        expected_hashes = {}
         for key in self.active:
-            item = self.records[key]
-            if item["status"] != "ok":
+            item = self.records.get(key)
+            if not isinstance(item, dict):
+                raise RuntimeError("Active manifest record missing: " + str(key))
+            if item.get("status") != "ok":
                 continue
+            entries = dict(item.get("files", {}))
             if "path" in item:
-                paths.add(item["path"])
-            paths.update(item.get("files",{}))
-        # Copy bytes atomically. Never delete existing data or historical snapshots.
-        for p in sorted(paths):
-            save(ROOT/p, (self.stage/p).read_bytes())
+                entries[item["path"]] = item.get("sha256")
+            for p, digest in entries.items():
+                if p in expected_hashes and expected_hashes[p] != digest:
+                    raise RuntimeError("Conflicting staged hashes for " + p)
+                expected_hashes[p] = digest
+        if not expected_hashes:
+            raise RuntimeError("No completed files available for publication.")
+        allowed_roots = {"activities", "activity_inventory", "activity_details",
+                         "wellness", "wellness_raw", "performance"}
+        verified = {}
+        for p, digest in sorted(expected_hashes.items()):
+            relative = Path(p)
+            if relative.is_absolute() or ".." in relative.parts or not relative.parts or relative.parts[0] not in allowed_roots:
+                raise RuntimeError("Unsafe manifest path: " + p)
+            source = (self.stage / relative).resolve()
+            if not source.is_relative_to(self.stage.resolve()) or not source.is_file():
+                raise RuntimeError("Staged file unavailable: " + p)
+            payload = source.read_bytes()
+            if not isinstance(digest, str) or hashlib.sha256(payload).hexdigest() != digest:
+                raise RuntimeError("Staged hash mismatch: " + p)
+            verified[p] = payload
+        # Validate ALL staged hashes before copying into the repository.
+        for p, payload in verified.items():
+            save(ROOT/p, payload)
         manifest_rel = Path("backfill_manifests")/(self.manifest["interval"]+".json")
         save(ROOT/manifest_rel, json_bytes(self.manifest))
         git("add", "--", "activities", "activity_inventory", "wellness", "wellness_raw",
@@ -395,7 +434,7 @@ class Collector:
                 ["activity_details"] if (ROOT/"activity_details").exists() else []))
         if subprocess.run(["git","-C",str(ROOT),"diff","--cached","--quiet"]).returncode == 1:
             git("commit", "-m", "archive: Garmin historical backfill "+self.manifest["interval"])
-        private_origin()
+        private_origin(self.opts.allow_public)
         git("push", "origin", "main")
         print("Published:", git("rev-parse","HEAD"), flush=True)
 
@@ -408,6 +447,12 @@ def main():
         raise SystemExit("Invalid pause/retries.")
     if o.allow_partial and not o.push:
         raise SystemExit("--allow-partial requires --push")
+    if o.allow_public and not o.push:
+        raise SystemExit("--allow-public requires --push")
+    if o.publish_only and not o.push:
+        raise SystemExit("--publish-only requires --push")
+    if o.publish_only and o.refresh:
+        raise SystemExit("--publish-only cannot be combined with --refresh")
     os.umask(0o077)
     state = Path(os.environ.get("GARMIN_BACKFILL_STATE", "~/.local/state/garmin-backfill")).expanduser().resolve()
     if state == ROOT or ROOT in state.parents:
@@ -421,7 +466,16 @@ def main():
         raise SystemExit("Another Garmin collector is running.")
     # Hold the same lock as run_sync.sh until exit. Do not alter systemd.
     if o.push:
-        private_origin()
+        private_origin(o.allow_public)
+    if o.publish_only:
+        c = Collector(o, stage, None, existing_only=True)
+        missing = [k for k in c.active
+                   if c.records[k].get("required") and c.records[k].get("status") != "ok"]
+        if missing and not o.allow_partial:
+            raise RuntimeError("Staged manifest has required gaps: " + str(len(missing)))
+        print("Publish-only: reusing completed staging without Garmin API calls.", flush=True)
+        c.publish()
+        return 2 if missing else 0
     try:
         import fitdecode
     except ImportError:
