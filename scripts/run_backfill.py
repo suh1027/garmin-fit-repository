@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import sys
 import time
 from zoneinfo import ZoneInfo
@@ -116,9 +117,12 @@ def verify_fit(payload):
         raise ValueError("no FIT data messages")
     return count
 
-def git(*args):
-    return subprocess.run(["git", "-C", str(ROOT), *args], check=True,
+def git_at(directory, *args):
+    return subprocess.run(["git", "-C", str(directory), *args], check=True,
                           stdout=subprocess.PIPE, text=True).stdout.strip()
+
+def git(*args):
+    return git_at(ROOT, *args)
 
 def private_origin(allow_public=False):
     # Exact origin is always enforced. Public exposure requires explicit opt-in.
@@ -388,13 +392,13 @@ class Collector:
         return missing
 
     def publish(self):
-        # Only current successful results; stale/failed files remain in staging.
+        # Never modify the operator's active checkout or include its dirty files.
         private_origin(self.opts.allow_public)
-        if git("status", "--porcelain"):
-            raise RuntimeError("Repository working tree is not clean; resolve changes before publishing.")
         if git("branch", "--show-current") != "main":
             raise RuntimeError("Repository must be on main.")
-        git("pull", "--ff-only", "origin", "main")
+        # Fetch does not merge, reset, or alter the local working tree.
+        git("fetch", "origin", "main")
+        base_sha = git("rev-parse", "refs/remotes/origin/main")
         expected_hashes = {}
         for key in self.active:
             item = self.records.get(key)
@@ -416,7 +420,8 @@ class Collector:
         verified_paths = []
         for p, digest in sorted(expected_hashes.items()):
             relative = Path(p)
-            if relative.is_absolute() or ".." in relative.parts or not relative.parts or relative.parts[0] not in allowed_roots:
+            if (relative.is_absolute() or ".." in relative.parts or not relative.parts
+                    or relative.parts[0] not in allowed_roots):
                 raise RuntimeError("Unsafe manifest path: " + p)
             source = (self.stage / relative).resolve()
             if not source.is_relative_to(self.stage.resolve()) or not source.is_file():
@@ -425,19 +430,37 @@ class Collector:
             if not isinstance(digest, str) or hashlib.sha256(payload).hexdigest() != digest:
                 raise RuntimeError("Staged hash mismatch: " + p)
             verified_paths.append(p)
-        # Validate ALL staged hashes before copying; copy one file at a time to limit RAM.
-        for p in verified_paths:
-            save(ROOT/p, (self.stage/p).read_bytes())
-        manifest_rel = Path("backfill_manifests")/(self.manifest["interval"]+".json")
-        save(ROOT/manifest_rel, json_bytes(self.manifest))
-        git("add", "--", "activities", "activity_inventory", "wellness", "wellness_raw",
-            "performance", "backfill_manifests", *(
-                ["activity_details"] if (ROOT/"activity_details").exists() else []))
-        if subprocess.run(["git","-C",str(ROOT),"diff","--cached","--quiet"]).returncode == 1:
-            git("commit", "-m", "archive: Garmin historical backfill "+self.manifest["interval"])
-        private_origin(self.opts.allow_public)
-        git("push", "origin", "main")
-        print("Published:", git("rev-parse","HEAD"), flush=True)
+        # A separate disposable worktree isolates staged data from uncommitted daily files.
+        with tempfile.TemporaryDirectory(prefix="garmin-backfill-publish-",
+                                         dir=str(self.stage.parent)) as tmp:
+            checkout = Path(tmp) / "checkout"
+            git("worktree", "add", "--detach", str(checkout), base_sha)
+            try:
+                for p in verified_paths:
+                    dest = (checkout / p)
+                    if not dest.resolve().is_relative_to(checkout.resolve()):
+                        raise RuntimeError("Worktree path escapes checkout: " + p)
+                    save(dest, (self.stage / p).read_bytes())
+                manifest_rel = Path("backfill_manifests") / (self.manifest["interval"] + ".json")
+                save(checkout / manifest_rel, json_bytes(self.manifest))
+                root_dirs = sorted({Path(p).parts[0] for p in verified_paths} | {"backfill_manifests"})
+                git_at(checkout, "add", "--", *root_dirs)
+                result = subprocess.run(
+                    ["git", "-C", str(checkout), "diff", "--cached", "--quiet"],
+                    check=False)
+                if result.returncode not in (0, 1):
+                    raise RuntimeError("Failed to inspect the staged Git diff.")
+                if result.returncode == 1:
+                    git_at(checkout, "commit", "-m",
+                           "archive: Garmin historical backfill " + self.manifest["interval"])
+                private_origin(self.opts.allow_public)
+                # Non-force push: refuses divergent remote changes.
+                git_at(checkout, "push", "origin", "HEAD:refs/heads/main")
+                print("Published:", git_at(checkout, "rev-parse", "HEAD"), flush=True)
+                print("Local working tree unchanged; your checked-out main may be behind remote.",
+                      flush=True)
+            finally:
+                git("worktree", "remove", "--force", str(checkout))
 
 def main():
     o = parse_args()
