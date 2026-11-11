@@ -124,7 +124,8 @@ def private_origin(allow_public=False):
     # Exact origin is always enforced. Public exposure requires explicit opt-in.
     url = git("remote", "get-url", "origin")
     allowed = {f"https://github.com/{REPO}", f"https://github.com/{REPO}.git",
-               f"git@github.com:{REPO}.git", f"ssh://git@github.com/{REPO}.git"}
+               f"git@github.com:{REPO}", f"git@github.com:{REPO}.git",
+               f"ssh://git@github.com/{REPO}", f"ssh://git@github.com/{REPO}.git"}
     if url not in allowed:
         raise RuntimeError("origin is not the expected GitHub repository")
     if allow_public:
