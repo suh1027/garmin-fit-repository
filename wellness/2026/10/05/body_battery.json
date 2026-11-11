@@ -1,0 +1,79 @@
+[
+  {
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 47,
+        "durationInMilliseconds": 27900000,
+        "eventStartTimeGmt": "2026-10-04T13:10:55.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": -22,
+        "durationInMilliseconds": 10740000,
+        "eventStartTimeGmt": "2026-10-04T22:38:01.0",
+        "eventType": "ACTIVITY",
+        "feedbackType": "EXERCISE_TRAINING_EFFECT_3",
+        "shortFeedback": "IMPROVING_AEROBIC_BASE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-05T12:04:56.0",
+      "feedbackLongType": "SLEEP_PREPARATION_RECOVERING_AND_INTENSIVE_EXERCISE",
+      "feedbackShortType": "SLEEP_PREPARATION_RECOVERING_AND_INTENSIVE_EXERCISE"
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
+    "bodyBatteryValuesArray": [
+      [
+        1791126000000,
+        14
+      ],
+      [
+        1791148500000,
+        57
+      ],
+      [
+        1791154800000,
+        50
+      ],
+      [
+        1791183060000,
+        24
+      ],
+      [
+        1791194400000,
+        20
+      ],
+      [
+        1791212040000,
+        54
+      ]
+    ],
+    "charged": 78,
+    "date": "2026-10-05",
+    "drained": 37,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-10-05T13:56:09.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INTENSIVE_EXERCISE",
+      "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INTENSIVE_EXERCISE"
+    },
+    "endTimestampGMT": "2026-10-05T15:00:00.0",
+    "endTimestampLocal": "2026-10-06T00:00:00.0",
+    "startTimestampGMT": "2026-10-04T15:00:00.0",
+    "startTimestampLocal": "2026-10-05T00:00:00.0"
+  }
+]

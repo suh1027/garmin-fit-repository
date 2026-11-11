@@ -1,0 +1,97 @@
+[
+  {
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 3,
+        "durationInMilliseconds": 5280000,
+        "eventStartTimeGmt": "2026-08-27T01:12:49.0",
+        "eventType": "RECOVERY",
+        "feedbackType": "RECOVERY_LONG_BODY_BATTERY_INCREASE",
+        "shortFeedback": "LONG_RESTFUL_PERIOD",
+        "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": -6,
+        "durationInMilliseconds": 9480000,
+        "eventStartTimeGmt": "2026-08-27T06:22:24.0",
+        "eventType": "RECOVERY",
+        "feedbackType": "RECOVERY_LONG_BODY_BATTERY_NOT_INCREASE",
+        "shortFeedback": "LONG_RESTFUL_PERIOD",
+        "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": -3,
+        "durationInMilliseconds": 540000,
+        "eventStartTimeGmt": "2026-08-27T10:58:04.0",
+        "eventType": "ACTIVITY",
+        "feedbackType": "EXERCISE_TRAINING_EFFECT_BELOW_2",
+        "shortFeedback": "EASY_RECOVERY",
+        "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": -11,
+        "durationInMilliseconds": 3300000,
+        "eventStartTimeGmt": "2026-08-27T11:12:43.0",
+        "eventType": "ACTIVITY",
+        "feedbackType": "EXERCISE_TRAINING_EFFECT_3",
+        "shortFeedback": "IMPROVING_AEROBIC",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-08-27T13:57:14.0",
+      "feedbackLongType": "SLEEP_PREPARATION_RECOVERING_AND_INTENSIVE_EXERCISE",
+      "feedbackShortType": "SLEEP_PREPARATION_RECOVERING_AND_INTENSIVE_EXERCISE"
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
+    "bodyBatteryValuesArray": [
+      [
+        1787784660000,
+        93
+      ],
+      [
+        1787784660000,
+        93
+      ],
+      [
+        1787785200000,
+        93
+      ],
+      [
+        1787813280000,
+        79
+      ],
+      [
+        1787814000000,
+        79
+      ],
+      [
+        1787841900000,
+        39
+      ]
+    ],
+    "charged": 4,
+    "date": "2026-08-27",
+    "drained": 58,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-08-26T19:11:31.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_NOT_STRESS_DATA_AND_INACTIVE",
+      "feedbackShortType": "SLEEP_TIME_PASSED_NOT_STRESS_DATA_AND_INACTIVE"
+    },
+    "endTimestampGMT": "2026-08-27T15:00:00.0",
+    "endTimestampLocal": "2026-08-28T00:00:00.0",
+    "startTimestampGMT": "2026-08-26T15:00:00.0",
+    "startTimestampLocal": "2026-08-27T00:00:00.0"
+  }
+]

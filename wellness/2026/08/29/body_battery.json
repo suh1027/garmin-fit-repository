@@ -1,0 +1,79 @@
+[
+  {
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": -2,
+        "durationInMilliseconds": 360000,
+        "eventStartTimeGmt": "2026-08-28T22:17:16.0",
+        "eventType": "ACTIVITY",
+        "feedbackType": "EXERCISE_TRAINING_EFFECT_BELOW_2",
+        "shortFeedback": "EASY_RECOVERY",
+        "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": 21,
+        "durationInMilliseconds": 12780000,
+        "eventStartTimeGmt": "2026-08-29T06:21:40.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "MODERATE",
+      "eventTimestampGmt": "2026-08-29T12:00:09.0",
+      "feedbackLongType": "SLEEP_PREPARATION_RECOVERING_AND_INTENSIVE_EXERCISE",
+      "feedbackShortType": "SLEEP_PREPARATION_RECOVERING_AND_INTENSIVE_EXERCISE"
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
+    "bodyBatteryValuesArray": [
+      [
+        1787929200000,
+        60
+      ],
+      [
+        1787950080000,
+        88
+      ],
+      [
+        1787958000000,
+        72
+      ],
+      [
+        1787983020000,
+        40
+      ],
+      [
+        1787986800000,
+        40
+      ],
+      [
+        1787997960000,
+        62
+      ]
+    ],
+    "charged": 52,
+    "date": "2026-08-29",
+    "drained": 56,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-08-28T16:23:25.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE",
+      "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE"
+    },
+    "endTimestampGMT": "2026-08-29T15:00:00.0",
+    "endTimestampLocal": "2026-08-30T00:00:00.0",
+    "startTimestampGMT": "2026-08-28T15:00:00.0",
+    "startTimestampLocal": "2026-08-29T00:00:00.0"
+  }
+]

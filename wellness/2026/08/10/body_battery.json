@@ -1,0 +1,82 @@
+[
+  {
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 0,
+        "durationInMilliseconds": 2040000,
+        "eventStartTimeGmt": "2026-08-09T23:36:18.0",
+        "eventType": "RECOVERY",
+        "feedbackType": "RECOVERY_BODY_BATTERY_NOT_INCREASE",
+        "shortFeedback": "RESTFUL_PERIOD",
+        "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": 6,
+        "durationInMilliseconds": 7800000,
+        "eventStartTimeGmt": "2026-08-10T00:18:48.0",
+        "eventType": "RECOVERY",
+        "feedbackType": "RECOVERY_LONG_BODY_BATTERY_INCREASE",
+        "shortFeedback": "LONG_RESTFUL_PERIOD",
+        "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": -11,
+        "durationInMilliseconds": 15600000,
+        "eventStartTimeGmt": "2026-08-10T03:27:03.0",
+        "eventType": "RECOVERY",
+        "feedbackType": "RECOVERY_LONG_BODY_BATTERY_NOT_INCREASE",
+        "shortFeedback": "LONG_RESTFUL_PERIOD",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-08-10T12:00:14.0",
+      "feedbackLongType": "SLEEP_PREPARATION_RECOVERING_AND_INACTIVE",
+      "feedbackShortType": "SLEEP_PREPARATION_RECOVERING_AND_INACTIVE"
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
+    "bodyBatteryValuesArray": [
+      [
+        1786314240000,
+        89
+      ],
+      [
+        1786314420000,
+        88
+      ],
+      [
+        1786327920000,
+        92
+      ],
+      [
+        1786344660000,
+        79
+      ],
+      [
+        1786345200000,
+        79
+      ],
+      [
+        1786366080000,
+        56
+      ]
+    ],
+    "charged": 15,
+    "date": "2026-08-10",
+    "drained": 39,
+    "endTimestampGMT": "2026-08-10T15:00:00.0",
+    "endTimestampLocal": "2026-08-11T00:00:00.0",
+    "startTimestampGMT": "2026-08-09T15:00:00.0",
+    "startTimestampLocal": "2026-08-10T00:00:00.0"
+  }
+]
