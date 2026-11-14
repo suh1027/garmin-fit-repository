@@ -27,13 +27,22 @@
         "feedbackType": "RECOVERY_LONG_BODY_BATTERY_NOT_INCREASE",
         "shortFeedback": "LONG_RESTFUL_PERIOD",
         "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": -5,
+        "durationInMilliseconds": 5640000,
+        "eventStartTimeGmt": "2026-11-13T05:27:44.0",
+        "eventType": "RECOVERY",
+        "feedbackType": "RECOVERY_LONG_BODY_BATTERY_NOT_INCREASE",
+        "shortFeedback": "LONG_RESTFUL_PERIOD",
+        "timezoneOffset": 32400000
       }
     ],
     "bodyBatteryDynamicFeedbackEvent": {
       "bodyBatteryLevel": "HIGH",
-      "eventTimestampGmt": "2026-11-13T03:19:15.0",
-      "feedbackLongType": "DAY_RECOVERING_AND_INACTIVE",
-      "feedbackShortType": "DAY_RECOVERING_AND_INACTIVE"
+      "eventTimestampGmt": "2026-11-13T12:00:11.0",
+      "feedbackLongType": "SLEEP_PREPARATION_RECOVERING_AND_INACTIVE",
+      "feedbackShortType": "SLEEP_PREPARATION_RECOVERING_AND_INACTIVE"
     },
     "bodyBatteryValueDescriptorDTOList": [
       {
@@ -51,37 +60,37 @@
         54
       ],
       [
-        1794510360000,
-        84
-      ],
-      [
-        1794510900000,
-        84
-      ],
-      [
         1794520980000,
         100
       ],
       [
-        1794526200000,
-        98
+        1794524400000,
+        100
       ],
       [
-        1794541140000,
-        86
+        1794552300000,
+        72
+      ],
+      [
+        1794553200000,
+        72
+      ],
+      [
+        1794581100000,
+        42
       ]
     ],
     "charged": 46,
     "date": "2026-11-13",
-    "drained": 14,
+    "drained": 58,
     "endOfDayBodyBatteryDynamicFeedbackEvent": {
       "bodyBatteryLevel": "HIGH",
-      "eventTimestampGmt": "2026-11-12T15:46:55.0",
+      "eventTimestampGmt": "2026-11-13T14:51:31.0",
       "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE",
       "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE"
     },
-    "endTimestampGMT": "2026-11-13T03:43:00.0",
-    "endTimestampLocal": "2026-11-13T12:43:00.0",
+    "endTimestampGMT": "2026-11-13T15:00:00.0",
+    "endTimestampLocal": "2026-11-14T00:00:00.0",
     "startTimestampGMT": "2026-11-12T15:00:00.0",
     "startTimestampLocal": "2026-11-13T00:00:00.0"
   }
