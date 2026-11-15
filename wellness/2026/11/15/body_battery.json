@@ -1,38 +1,70 @@
 [
   {
-    "bodyBatteryValueDescriptorDTOList": null,
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 39,
+        "durationInMilliseconds": 22680000,
+        "eventStartTimeGmt": "2026-11-14T13:50:54.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "MODERATE",
+      "eventTimestampGmt": "2026-11-14T22:14:05.0",
+      "feedbackLongType": "MORNING_RECOVERING_AND_INACTIVE",
+      "feedbackShortType": "MORNING_RECOVERING_AND_INACTIVE"
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
     "bodyBatteryValuesArray": [
       [
-        1794700800001,
-        null
+        1794668400000,
+        21
       ],
       [
-        1794700800002,
-        null
+        1794676500000,
+        39
       ],
       [
-        1794700800003,
-        null
+        1794677220000,
+        39
       ],
       [
-        1794700800004,
-        null
+        1794685680000,
+        55
       ],
       [
-        1794700800005,
-        null
+        1794686580000,
+        57
       ],
       [
-        1794700800006,
-        null
+        1794691260000,
+        53
       ]
     ],
-    "charged": null,
+    "charged": 36,
     "date": "2026-11-15",
-    "drained": null,
-    "endTimestampGMT": null,
-    "endTimestampLocal": null,
-    "startTimestampGMT": null,
-    "startTimestampLocal": null
+    "drained": 4,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "HIGH",
+      "eventTimestampGmt": "2026-11-14T15:35:11.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE",
+      "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE"
+    },
+    "endTimestampGMT": "2026-11-14T22:16:00.0",
+    "endTimestampLocal": "2026-11-15T07:16:00.0",
+    "startTimestampGMT": "2026-11-14T15:00:00.0",
+    "startTimestampLocal": "2026-11-15T00:00:00.0"
   }
 ]
