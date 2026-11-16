@@ -1,38 +1,70 @@
 [
   {
-    "bodyBatteryValueDescriptorDTOList": null,
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 15,
+        "durationInMilliseconds": 21060000,
+        "eventStartTimeGmt": "2026-11-15T16:08:42.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "VERY_LOW",
+      "eventTimestampGmt": "2026-11-15T23:18:57.0",
+      "feedbackLongType": "EARLY_MORNING_VERY_LOW_POOR_RECOVERY_SCORE_LOW_HRV",
+      "feedbackShortType": null
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
     "bodyBatteryValuesArray": [
       [
-        1794787200001,
-        null
+        1794754800000,
+        5
       ],
       [
-        1794787200002,
-        null
+        1794754800000,
+        5
       ],
       [
-        1794787200003,
-        null
+        1794765060000,
+        5
       ],
       [
-        1794787200004,
-        null
+        1794774420000,
+        16
       ],
       [
-        1794787200005,
-        null
+        1794775320000,
+        17
       ],
       [
-        1794787200006,
-        null
+        1794780000000,
+        21
       ]
     ],
-    "charged": null,
+    "charged": 16,
     "date": "2026-11-16",
-    "drained": null,
-    "endTimestampGMT": null,
-    "endTimestampLocal": null,
-    "startTimestampGMT": null,
-    "startTimestampLocal": null
+    "drained": 2,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "LOW",
+      "eventTimestampGmt": "2026-11-15T18:48:10.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_NOT_STRESS_DATA_AND_ACTIVE_AND_EXERCISE_AND_BB_LOW",
+      "feedbackShortType": "SLEEP_TIME_PASSED_NOT_STRESS_DATA_AND_ACTIVE_AND_EXERCISE"
+    },
+    "endTimestampGMT": "2026-11-15T23:28:00.0",
+    "endTimestampLocal": "2026-11-16T08:28:00.0",
+    "startTimestampGMT": "2026-11-15T15:00:00.0",
+    "startTimestampLocal": "2026-11-16T00:00:00.0"
   }
 ]
