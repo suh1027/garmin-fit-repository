@@ -1,14 +1,124 @@
 {
-  "avgStressLevel": null,
+  "avgStressLevel": 80,
+  "bodyBatteryValueDescriptorsDTOList": [
+    {
+      "bodyBatteryValueDescriptorIndex": 0,
+      "bodyBatteryValueDescriptorKey": "timestamp"
+    },
+    {
+      "bodyBatteryValueDescriptorIndex": 1,
+      "bodyBatteryValueDescriptorKey": "bodyBatteryStatus"
+    },
+    {
+      "bodyBatteryValueDescriptorIndex": 2,
+      "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+    },
+    {
+      "bodyBatteryValueDescriptorIndex": 3,
+      "bodyBatteryValueDescriptorKey": "bodyBatteryVersion"
+    }
+  ],
+  "bodyBatteryValuesArray": [
+    [
+      1795186800000,
+      "MEASURED",
+      5,
+      3.0
+    ],
+    [
+      1795186980000,
+      "MEASURED",
+      5,
+      3.0
+    ],
+    [
+      1795187160000,
+      "MEASURED",
+      5,
+      3.0
+    ],
+    [
+      1795187340000,
+      "MEASURED",
+      5,
+      3.0
+    ],
+    [
+      1795187520000,
+      "MEASURED",
+      6,
+      3.0
+    ],
+    [
+      1795187700000,
+      "MEASURED",
+      6,
+      3.0
+    ],
+    [
+      1795187880000,
+      "MEASURED",
+      6,
+      3.0
+    ],
+    [
+      1795188060000,
+      "MEASURED",
+      6,
+      3.0
+    ]
+  ],
   "calendarDate": "2026-11-21",
-  "endTimestampGMT": null,
-  "endTimestampLocal": null,
-  "maxStressLevel": null,
-  "startTimestampGMT": null,
-  "startTimestampLocal": null,
-  "stressChartValueOffset": null,
-  "stressChartYAxisOrigin": null,
-  "stressValueDescriptorsDTOList": [],
-  "stressValuesArray": [],
+  "endTimestampGMT": "2026-11-20T15:24:00.0",
+  "endTimestampLocal": "2026-11-21T00:24:00.0",
+  "maxStressLevel": 85,
+  "startTimestampGMT": "2026-11-20T15:00:00.0",
+  "startTimestampLocal": "2026-11-21T00:00:00.0",
+  "stressChartValueOffset": 1,
+  "stressChartYAxisOrigin": -1,
+  "stressValueDescriptorsDTOList": [
+    {
+      "index": 0,
+      "key": "timestamp"
+    },
+    {
+      "index": 1,
+      "key": "stressLevel"
+    }
+  ],
+  "stressValuesArray": [
+    [
+      1795186800000,
+      75
+    ],
+    [
+      1795186980000,
+      77
+    ],
+    [
+      1795187160000,
+      80
+    ],
+    [
+      1795187340000,
+      79
+    ],
+    [
+      1795187520000,
+      80
+    ],
+    [
+      1795187700000,
+      81
+    ],
+    [
+      1795187880000,
+      81
+    ],
+    [
+      1795188060000,
+      82
+    ]
+  ],
   "userProfilePK": 103903466
 }
