@@ -1,38 +1,70 @@
 [
   {
-    "bodyBatteryValueDescriptorDTOList": null,
+    "bodyBatteryActivityEvent": [
+      {
+        "bodyBatteryImpact": 12,
+        "durationInMilliseconds": 21360000,
+        "eventStartTimeGmt": "2026-11-21T16:42:20.0",
+        "eventType": "SLEEP",
+        "feedbackType": "NONE",
+        "shortFeedback": "NONE",
+        "timezoneOffset": 32400000
+      }
+    ],
+    "bodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "VERY_LOW",
+      "eventTimestampGmt": "2026-11-21T22:39:52.0",
+      "feedbackLongType": "EARLY_MORNING_VERY_LOW_POOR_SLEEP_DURATION_LOW_HRV",
+      "feedbackShortType": null
+    },
+    "bodyBatteryValueDescriptorDTOList": [
+      {
+        "bodyBatteryValueDescriptorIndex": 0,
+        "bodyBatteryValueDescriptorKey": "timestamp"
+      },
+      {
+        "bodyBatteryValueDescriptorIndex": 1,
+        "bodyBatteryValueDescriptorKey": "bodyBatteryLevel"
+      }
+    ],
     "bodyBatteryValuesArray": [
       [
-        1795305600001,
-        null
+        1795273560000,
+        8
       ],
       [
-        1795305600002,
-        null
+        1795276260000,
+        6
       ],
       [
-        1795305600003,
-        null
+        1795282560000,
+        7
       ],
       [
-        1795305600004,
-        null
+        1795287240000,
+        16
       ],
       [
-        1795305600005,
-        null
+        1795295700000,
+        13
       ],
       [
-        1795305600006,
-        null
+        1795300740000,
+        18
       ]
     ],
-    "charged": null,
+    "charged": 16,
     "date": "2026-11-22",
-    "drained": null,
-    "endTimestampGMT": null,
-    "endTimestampLocal": null,
-    "startTimestampGMT": null,
-    "startTimestampLocal": null
+    "drained": 6,
+    "endOfDayBodyBatteryDynamicFeedbackEvent": {
+      "bodyBatteryLevel": "LOW",
+      "eventTimestampGmt": "2026-11-21T19:58:47.0",
+      "feedbackLongType": "SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE_AND_BB_LOW",
+      "feedbackShortType": "SLEEP_TIME_PASSED_STRESSFUL_AND_INACTIVE"
+    },
+    "endTimestampGMT": "2026-11-21T22:47:00.0",
+    "endTimestampLocal": "2026-11-22T07:47:00.0",
+    "startTimestampGMT": "2026-11-21T15:00:00.0",
+    "startTimestampLocal": "2026-11-22T00:00:00.0"
   }
 ]
