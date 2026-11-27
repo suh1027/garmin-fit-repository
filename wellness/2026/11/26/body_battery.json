@@ -9,13 +9,31 @@
         "feedbackType": "NONE",
         "shortFeedback": "NONE",
         "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": 1,
+        "durationInMilliseconds": 1380000,
+        "eventStartTimeGmt": "2026-11-26T11:32:34.0",
+        "eventType": "NAP",
+        "feedbackType": "NAP_RECOVERING_BODY_BATTERY_INCREASE",
+        "shortFeedback": "RESTFUL_NAP",
+        "timezoneOffset": 32400000
+      },
+      {
+        "bodyBatteryImpact": -10,
+        "durationInMilliseconds": 4080000,
+        "eventStartTimeGmt": "2026-11-26T13:05:39.0",
+        "eventType": "ACTIVITY",
+        "feedbackType": "EXERCISE_TRAINING_EFFECT_2",
+        "shortFeedback": "MAINTAINING_AEROBIC_BASE",
+        "timezoneOffset": 32400000
       }
     ],
     "bodyBatteryDynamicFeedbackEvent": {
       "bodyBatteryLevel": "MODERATE",
-      "eventTimestampGmt": "2026-11-26T04:38:01.0",
-      "feedbackLongType": "DAY_RECOVERING_AND_INACTIVE",
-      "feedbackShortType": "DAY_RECOVERING_AND_INACTIVE"
+      "eventTimestampGmt": "2026-11-26T14:14:26.0",
+      "feedbackLongType": "SLEEP_PREPARATION_RECOVERING_AND_EXERCISE",
+      "feedbackShortType": "SLEEP_PREPARATION_RECOVERING_AND_EXERCISE"
     },
     "bodyBatteryValueDescriptorDTOList": [
       {
@@ -33,37 +51,37 @@
         30
       ],
       [
-        1795639860000,
-        61
-      ],
-      [
         1795645620000,
         66
       ],
       [
-        1795660920000,
-        54
+        1795647600000,
+        64
       ],
       [
-        1795661280000,
-        54
+        1795675860000,
+        44
       ],
       [
-        1795680900000,
-        40
+        1795676400000,
+        44
+      ],
+      [
+        1795702320000,
+        22
       ]
     ],
-    "charged": 36,
+    "charged": 40,
     "date": "2026-11-26",
-    "drained": 26,
+    "drained": 48,
     "endOfDayBodyBatteryDynamicFeedbackEvent": {
       "bodyBatteryLevel": "HIGH",
       "eventTimestampGmt": "2026-11-25T16:36:03.0",
       "feedbackLongType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE",
       "feedbackShortType": "SLEEP_TIME_PASSED_RECOVERING_AND_INACTIVE"
     },
-    "endTimestampGMT": "2026-11-26T08:35:00.0",
-    "endTimestampLocal": "2026-11-26T17:35:00.0",
+    "endTimestampGMT": "2026-11-26T15:00:00.0",
+    "endTimestampLocal": "2026-11-27T00:00:00.0",
     "startTimestampGMT": "2026-11-25T15:00:00.0",
     "startTimestampLocal": "2026-11-26T00:00:00.0"
   }
